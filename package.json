@@ -1,0 +1,44 @@
+{
+  "name": "neutron-client-ts",
+  "version": "0.0.0-development",
+  "description": "Neutron Typescript Client",
+  "author": "Sergey Ratiashvili <serg.s.r@gmail.com>",
+  "license": "Apache-2.0",
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "semantic-release": "semantic-release"
+  },
+  "main": "src/index.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neutron-org/chain-ts-client"
+  },
+  "dependencies": {
+    "@cosmjs/launchpad": "0.27.0",
+    "@cosmjs/proto-signing": "0.27.0",
+    "@cosmjs/stargate": "0.27.0",
+    "@keplr-wallet/types": "^0.11.3",
+    "axios": "0.21.1",
+    "buffer": "^6.0.3",
+    "events": "^3.3.0"
+  },
+  "peerDependencies": {
+    "@cosmjs/launchpad": "0.27.0",
+    "@cosmjs/proto-signing": "0.27.0",
+    "@cosmjs/stargate": "0.27.0"
+  },
+  "devDependencies": {
+    "@types/events": "^3.0.0",
+    "semantic-release": "^19.0.5",
+    "typescript": "^4.9.4"
+  }
+}
