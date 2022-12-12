@@ -14,7 +14,7 @@
     "build": "NODE_OPTIONS=--max_old_space_size=6096 tsc --build",
     "semantic-release": "semantic-release"
   },
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "publishConfig": {
     "access": "public"
   },
