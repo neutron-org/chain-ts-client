@@ -36,7 +36,8 @@
     "@keplr-wallet/types": "^0.11.3",
     "axios": "0.21.1",
     "buffer": "^6.0.3",
-    "events": "^3.3.0"
+    "events": "^3.3.0",
+    "protobufjs": "^7.1.2"
   },
   "peerDependencies": {
     "@cosmjs/launchpad": "0.27.0",

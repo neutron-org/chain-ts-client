@@ -7,21 +7,21 @@ import { msgTypes } from './registry';
 import { IgniteClient } from "../client"
 import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
-import { MsgSubmitProposal } from "./types/adminmodule/tx";
 import { MsgAddAdmin } from "./types/adminmodule/tx";
+import { MsgSubmitProposal } from "./types/adminmodule/tx";
 import { MsgDeleteAdmin } from "./types/adminmodule/tx";
 
 
-export { MsgSubmitProposal, MsgAddAdmin, MsgDeleteAdmin };
+export { MsgAddAdmin, MsgSubmitProposal, MsgDeleteAdmin };
 
-type sendMsgSubmitProposalParams = {
-  value: MsgSubmitProposal,
+type sendMsgAddAdminParams = {
+  value: MsgAddAdmin,
   fee?: StdFee,
   memo?: string
 };
 
-type sendMsgAddAdminParams = {
-  value: MsgAddAdmin,
+type sendMsgSubmitProposalParams = {
+  value: MsgSubmitProposal,
   fee?: StdFee,
   memo?: string
 };
@@ -33,12 +33,12 @@ type sendMsgDeleteAdminParams = {
 };
 
 
-type msgSubmitProposalParams = {
-  value: MsgSubmitProposal,
-};
-
 type msgAddAdminParams = {
   value: MsgAddAdmin,
+};
+
+type msgSubmitProposalParams = {
+  value: MsgSubmitProposal,
 };
 
 type msgDeleteAdminParams = {
@@ -48,6 +48,18 @@ type msgDeleteAdminParams = {
 
 export const registry = new Registry(msgTypes);
 
+type Field = {
+	name: string;
+	type: unknown;
+}
+function getStructure(template) {
+	const structure: {fields: Field[]} = { fields: [] }
+	for (let [key, value] of Object.entries(template)) {
+		let field = { name: key, type: typeof value }
+		structure.fields.push(field)
+	}
+	return structure
+}
 const defaultFee = {
   amount: [],
   gas: "200000",
@@ -63,20 +75,6 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 
   return {
 		
-		async sendMsgSubmitProposal({ value, fee, memo }: sendMsgSubmitProposalParams): Promise<DeliverTxResponse> {
-			if (!signer) {
-					throw new Error('TxClient:sendMsgSubmitProposal: Unable to sign Tx. Signer is not present.')
-			}
-			try {			
-				const { address } = (await signer.getAccounts())[0]; 
-				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
-				let msg = this.msgSubmitProposal({ value: MsgSubmitProposal.fromPartial(value) })
-				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
-			} catch (e: any) {
-				throw new Error('TxClient:sendMsgSubmitProposal: Could not broadcast Tx: '+ e.message)
-			}
-		},
-		
 		async sendMsgAddAdmin({ value, fee, memo }: sendMsgAddAdminParams): Promise<DeliverTxResponse> {
 			if (!signer) {
 					throw new Error('TxClient:sendMsgAddAdmin: Unable to sign Tx. Signer is not present.')
@@ -88,6 +86,20 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
 			} catch (e: any) {
 				throw new Error('TxClient:sendMsgAddAdmin: Could not broadcast Tx: '+ e.message)
+			}
+		},
+		
+		async sendMsgSubmitProposal({ value, fee, memo }: sendMsgSubmitProposalParams): Promise<DeliverTxResponse> {
+			if (!signer) {
+					throw new Error('TxClient:sendMsgSubmitProposal: Unable to sign Tx. Signer is not present.')
+			}
+			try {			
+				const { address } = (await signer.getAccounts())[0]; 
+				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
+				let msg = this.msgSubmitProposal({ value: MsgSubmitProposal.fromPartial(value) })
+				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
+			} catch (e: any) {
+				throw new Error('TxClient:sendMsgSubmitProposal: Could not broadcast Tx: '+ e.message)
 			}
 		},
 		
@@ -106,19 +118,19 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 		},
 		
 		
-		msgSubmitProposal({ value }: msgSubmitProposalParams): EncodeObject {
-			try {
-				return { typeUrl: "/cosmos.adminmodule.adminmodule.MsgSubmitProposal", value: MsgSubmitProposal.fromPartial( value ) }  
-			} catch (e: any) {
-				throw new Error('TxClient:MsgSubmitProposal: Could not create message: ' + e.message)
-			}
-		},
-		
 		msgAddAdmin({ value }: msgAddAdminParams): EncodeObject {
 			try {
 				return { typeUrl: "/cosmos.adminmodule.adminmodule.MsgAddAdmin", value: MsgAddAdmin.fromPartial( value ) }  
 			} catch (e: any) {
 				throw new Error('TxClient:MsgAddAdmin: Could not create message: ' + e.message)
+			}
+		},
+		
+		msgSubmitProposal({ value }: msgSubmitProposalParams): EncodeObject {
+			try {
+				return { typeUrl: "/cosmos.adminmodule.adminmodule.MsgSubmitProposal", value: MsgSubmitProposal.fromPartial( value ) }  
+			} catch (e: any) {
+				throw new Error('TxClient:MsgSubmitProposal: Could not create message: ' + e.message)
 			}
 		},
 		
@@ -144,13 +156,16 @@ export const queryClient = ({ addr: addr }: QueryClientOptions = { addr: "http:/
 class SDKModule {
 	public query: ReturnType<typeof queryClient>;
 	public tx: ReturnType<typeof txClient>;
-	
+	public structure: Record<string,unknown>;
 	public registry: Array<[string, GeneratedType]> = [];
 
 	constructor(client: IgniteClient) {		
 	
 		this.query = queryClient({ addr: client.env.apiURL });		
 		this.updateTX(client);
+		this.structure =  {
+						
+		};
 		client.on('signer-changed',(signer) => {			
 		 this.updateTX(client);
 		})

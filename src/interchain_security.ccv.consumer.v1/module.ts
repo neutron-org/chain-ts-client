@@ -8,6 +8,15 @@ import { IgniteClient } from "../client"
 import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
 
+import { Params as typeParams} from "./types"
+import { LastTransmissionBlockHeight as typeLastTransmissionBlockHeight} from "./types"
+import { CrossChainValidator as typeCrossChainValidator} from "./types"
+import { SlashRequest as typeSlashRequest} from "./types"
+import { SlashRequests as typeSlashRequests} from "./types"
+import { MaturingVSCPacket as typeMaturingVSCPacket} from "./types"
+import { HeightToValsetUpdateID as typeHeightToValsetUpdateID} from "./types"
+import { OutstandingDowntime as typeOutstandingDowntime} from "./types"
+import { NextFeeDistributionEstimate as typeNextFeeDistributionEstimate} from "./types"
 
 export {  };
 
@@ -15,6 +24,18 @@ export {  };
 
 export const registry = new Registry(msgTypes);
 
+type Field = {
+	name: string;
+	type: unknown;
+}
+function getStructure(template) {
+	const structure: {fields: Field[]} = { fields: [] }
+	for (let [key, value] of Object.entries(template)) {
+		let field = { name: key, type: typeof value }
+		structure.fields.push(field)
+	}
+	return structure
+}
 const defaultFee = {
   amount: [],
   gas: "200000",
@@ -45,13 +66,25 @@ export const queryClient = ({ addr: addr }: QueryClientOptions = { addr: "http:/
 class SDKModule {
 	public query: ReturnType<typeof queryClient>;
 	public tx: ReturnType<typeof txClient>;
-	
+	public structure: Record<string,unknown>;
 	public registry: Array<[string, GeneratedType]> = [];
 
 	constructor(client: IgniteClient) {		
 	
 		this.query = queryClient({ addr: client.env.apiURL });		
 		this.updateTX(client);
+		this.structure =  {
+						Params: getStructure(typeParams.fromPartial({})),
+						LastTransmissionBlockHeight: getStructure(typeLastTransmissionBlockHeight.fromPartial({})),
+						CrossChainValidator: getStructure(typeCrossChainValidator.fromPartial({})),
+						SlashRequest: getStructure(typeSlashRequest.fromPartial({})),
+						SlashRequests: getStructure(typeSlashRequests.fromPartial({})),
+						MaturingVSCPacket: getStructure(typeMaturingVSCPacket.fromPartial({})),
+						HeightToValsetUpdateID: getStructure(typeHeightToValsetUpdateID.fromPartial({})),
+						OutstandingDowntime: getStructure(typeOutstandingDowntime.fromPartial({})),
+						NextFeeDistributionEstimate: getStructure(typeNextFeeDistributionEstimate.fromPartial({})),
+						
+		};
 		client.on('signer-changed',(signer) => {			
 		 this.updateTX(client);
 		})

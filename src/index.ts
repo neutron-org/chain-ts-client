@@ -24,16 +24,17 @@ import { Module as IbcCoreConnectionV1, msgTypes as IbcCoreConnectionV1MsgTypes 
 import { Module as InterchainSecurityCcvConsumerV1, msgTypes as InterchainSecurityCcvConsumerV1MsgTypes } from './interchain_security.ccv.consumer.v1'
 import { Module as InterchainSecurityCcvProviderV1, msgTypes as InterchainSecurityCcvProviderV1MsgTypes } from './interchain_security.ccv.provider.v1'
 import { Module as InterchainSecurityCcvV1, msgTypes as InterchainSecurityCcvV1MsgTypes } from './interchain_security.ccv.v1'
-import { Module as NeutronInterchainadapterContractmanager, msgTypes as NeutronInterchainadapterContractmanagerMsgTypes } from './neutron.interchainadapter.contractmanager'
-import { Module as NeutronInterchainadapterFeerefunder, msgTypes as NeutronInterchainadapterFeerefunderMsgTypes } from './neutron.interchainadapter.feerefunder'
-import { Module as NeutronInterchainadapterInterchainqueries, msgTypes as NeutronInterchainadapterInterchainqueriesMsgTypes } from './neutron.interchainadapter.interchainqueries'
-import { Module as NeutronInterchainadapterInterchaintxs, msgTypes as NeutronInterchainadapterInterchaintxsMsgTypes } from './neutron.interchainadapter.interchaintxs'
-import { Module as NeutronInterchainadapterInterchaintxsV1, msgTypes as NeutronInterchainadapterInterchaintxsV1MsgTypes } from './neutron.interchainadapter.interchaintxs.v1'
-import { Module as NeutronInterchainadapterTransfer, msgTypes as NeutronInterchainadapterTransferMsgTypes } from './neutron.interchainadapter.transfer'
+import { Module as NeutronContractmanager, msgTypes as NeutronContractmanagerMsgTypes } from './neutron.contractmanager'
+import { Module as NeutronFeeburner, msgTypes as NeutronFeeburnerMsgTypes } from './neutron.feeburner'
+import { Module as NeutronFeerefunder, msgTypes as NeutronFeerefunderMsgTypes } from './neutron.feerefunder'
+import { Module as NeutronInterchainqueries, msgTypes as NeutronInterchainqueriesMsgTypes } from './neutron.interchainqueries'
+import { Module as NeutronInterchaintxs, msgTypes as NeutronInterchaintxsMsgTypes } from './neutron.interchaintxs'
+import { Module as NeutronInterchaintxsV1, msgTypes as NeutronInterchaintxsV1MsgTypes } from './neutron.interchaintxs.v1'
+import { Module as NeutronTransfer, msgTypes as NeutronTransferMsgTypes } from './neutron.transfer'
 
 
 const Client = IgniteClient.plugin([
-    CosmosAdminmoduleAdminmodule, CosmosAuthV1Beta1, CosmosAuthzV1Beta1, CosmosBankV1Beta1, CosmosBaseTendermintV1Beta1, CosmosCrisisV1Beta1, CosmosEvidenceV1Beta1, CosmosFeegrantV1Beta1, CosmosParamsV1Beta1, CosmosSlashingV1Beta1, CosmosTxV1Beta1, CosmosUpgradeV1Beta1, CosmosVestingV1Beta1, CosmwasmWasmV1, IbcApplicationsInterchainAccountsControllerV1, IbcApplicationsInterchainAccountsHostV1, IbcCoreChannelV1, IbcCoreClientV1, IbcCoreConnectionV1, InterchainSecurityCcvConsumerV1, InterchainSecurityCcvProviderV1, InterchainSecurityCcvV1, NeutronInterchainadapterContractmanager, NeutronInterchainadapterFeerefunder, NeutronInterchainadapterInterchainqueries, NeutronInterchainadapterInterchaintxs, NeutronInterchainadapterInterchaintxsV1, NeutronInterchainadapterTransfer
+    CosmosAdminmoduleAdminmodule, CosmosAuthV1Beta1, CosmosAuthzV1Beta1, CosmosBankV1Beta1, CosmosBaseTendermintV1Beta1, CosmosCrisisV1Beta1, CosmosEvidenceV1Beta1, CosmosFeegrantV1Beta1, CosmosParamsV1Beta1, CosmosSlashingV1Beta1, CosmosTxV1Beta1, CosmosUpgradeV1Beta1, CosmosVestingV1Beta1, CosmwasmWasmV1, IbcApplicationsInterchainAccountsControllerV1, IbcApplicationsInterchainAccountsHostV1, IbcCoreChannelV1, IbcCoreClientV1, IbcCoreConnectionV1, InterchainSecurityCcvConsumerV1, InterchainSecurityCcvProviderV1, InterchainSecurityCcvV1, NeutronContractmanager, NeutronFeeburner, NeutronFeerefunder, NeutronInterchainqueries, NeutronInterchaintxs, NeutronInterchaintxsV1, NeutronTransfer
 ]);
 
 const registry = new Registry([
@@ -59,12 +60,13 @@ const registry = new Registry([
   ...InterchainSecurityCcvConsumerV1MsgTypes,
   ...InterchainSecurityCcvProviderV1MsgTypes,
   ...InterchainSecurityCcvV1MsgTypes,
-  ...NeutronInterchainadapterContractmanagerMsgTypes,
-  ...NeutronInterchainadapterFeerefunderMsgTypes,
-  ...NeutronInterchainadapterInterchainqueriesMsgTypes,
-  ...NeutronInterchainadapterInterchaintxsMsgTypes,
-  ...NeutronInterchainadapterInterchaintxsV1MsgTypes,
-  ...NeutronInterchainadapterTransferMsgTypes,
+  ...NeutronContractmanagerMsgTypes,
+  ...NeutronFeeburnerMsgTypes,
+  ...NeutronFeerefunderMsgTypes,
+  ...NeutronInterchainqueriesMsgTypes,
+  ...NeutronInterchaintxsMsgTypes,
+  ...NeutronInterchaintxsV1MsgTypes,
+  ...NeutronTransferMsgTypes,
   
 ])
 
