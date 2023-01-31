@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from "long";
-import * as _m0 from "protobufjs/minimal";
+import _m0 from "protobufjs/minimal";
 import { ClientState, ConsensusState } from "../../../../ibc/lightclients/tendermint/v1/tendermint";
 import { ValidatorUpdate } from "../../../../tendermint/abci/types";
 import { Params, SlashRequests } from "./consumer";

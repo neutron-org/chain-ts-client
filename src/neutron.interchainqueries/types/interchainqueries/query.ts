@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from "long";
-import * as _m0 from "protobufjs/minimal";
+import _m0 from "protobufjs/minimal";
 import { PageRequest, PageResponse } from "../cosmos/base/query/v1beta1/pagination";
 import { RegisteredQuery } from "./genesis";
 import { Params } from "./params";

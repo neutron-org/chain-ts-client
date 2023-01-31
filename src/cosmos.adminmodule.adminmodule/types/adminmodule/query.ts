@@ -1,5 +1,5 @@
 /* eslint-disable */
-import * as _m0 from "protobufjs/minimal";
+import _m0 from "protobufjs/minimal";
 import { Proposal } from "../cosmos/gov/v1beta1/gov";
 
 export const protobufPackage = "cosmos.adminmodule.adminmodule";

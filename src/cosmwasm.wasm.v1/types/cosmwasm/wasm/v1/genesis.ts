@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from "long";
-import * as _m0 from "protobufjs/minimal";
+import _m0 from "protobufjs/minimal";
 import { MsgExecuteContract, MsgInstantiateContract, MsgStoreCode } from "./tx";
 import { CodeInfo, ContractInfo, Model, Params } from "./types";
 

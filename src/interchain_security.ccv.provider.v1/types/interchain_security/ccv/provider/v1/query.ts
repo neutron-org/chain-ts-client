@@ -1,5 +1,5 @@
 /* eslint-disable */
-import * as _m0 from "protobufjs/minimal";
+import _m0 from "protobufjs/minimal";
 import { GenesisState } from "../../consumer/v1/genesis";
 import { ConsumerAdditionProposals, ConsumerRemovalProposals } from "./provider";
 

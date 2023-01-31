@@ -1,5 +1,5 @@
 /* eslint-disable */
-import * as _m0 from "protobufjs/minimal";
+import _m0 from "protobufjs/minimal";
 import { PageRequest, PageResponse } from "../../base/query/v1beta1/pagination";
 import { Coin } from "../../base/v1beta1/coin";
 import { Metadata, Params } from "./bank";
