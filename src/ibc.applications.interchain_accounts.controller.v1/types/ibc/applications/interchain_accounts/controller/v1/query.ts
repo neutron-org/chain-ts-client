@@ -1,5 +1,5 @@
 /* eslint-disable */
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 import { Params } from "./controller";
 
 export const protobufPackage = "ibc.applications.interchain_accounts.controller.v1";

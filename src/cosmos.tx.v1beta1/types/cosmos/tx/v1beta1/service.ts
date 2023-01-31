@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from "long";
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 import { Block } from "../../../tendermint/types/block";
 import { BlockID } from "../../../tendermint/types/types";
 import { GasInfo, Result, TxResponse } from "../../base/abci/v1beta1/abci";

@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from "long";
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 import { GenesisState as GenesisState1 } from "../../consumer/v1/genesis";
 import { MaturedUnbondingOps, UnbondingOp, ValidatorSetChangePacketData } from "../../v1/ccv";
 import { ConsumerAdditionProposal, ConsumerRemovalProposal, Params } from "./provider";

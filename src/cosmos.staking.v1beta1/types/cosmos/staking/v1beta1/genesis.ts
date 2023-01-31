@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from "long";
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 import { Delegation, Params, Redelegation, UnbondingDelegation, Validator } from "./staking";
 
 export const protobufPackage = "cosmos.staking.v1beta1";

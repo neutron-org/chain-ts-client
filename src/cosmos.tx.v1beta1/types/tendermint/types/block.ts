@@ -1,5 +1,5 @@
 /* eslint-disable */
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 import { EvidenceList } from "./evidence";
 import { Commit, Data, Header } from "./types";
 

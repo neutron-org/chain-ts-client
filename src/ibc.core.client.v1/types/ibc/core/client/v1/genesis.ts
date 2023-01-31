@@ -1,6 +1,6 @@
 /* eslint-disable */
 import Long from "long";
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 import { ClientConsensusStates, IdentifiedClientState, Params } from "./client";
 
 export const protobufPackage = "ibc.core.client.v1";

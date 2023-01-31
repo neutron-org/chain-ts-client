@@ -1,5 +1,5 @@
 /* eslint-disable */
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 import { Params } from "./params";
 import { TotalBurnedNeutronsAmount } from "./total_burned_neutrons_amount";
 
