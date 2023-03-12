@@ -5,6 +5,7 @@ import { Duration } from "../../../../google/protobuf/duration";
 import { Timestamp } from "../../../../google/protobuf/timestamp";
 import { Height } from "../../../../ibc/core/client/v1/client";
 import { ClientState } from "../../../../ibc/lightclients/tendermint/v1/tendermint";
+import { PublicKey } from "../../../../tendermint/crypto/keys";
 
 export const protobufPackage = "interchain_security.ccv.provider.v1";
 
@@ -30,9 +31,15 @@ export interface ConsumerAdditionProposal {
   initialHeight:
     | Height
     | undefined;
-  /** genesis hash with no staking information included. */
+  /**
+   * The hash of the consumer chain genesis state without the consumer CCV module genesis params.
+   * It is used for off-chain confirmation of genesis.json validity by validators and other parties.
+   */
   genesisHash: Uint8Array;
-  /** binary hash is the hash of the binary that should be used by validators on chain initialization. */
+  /**
+   * The hash of the consumer chain binary that should be run by validators on chain initialization.
+   * It is used for off-chain confirmation of binary validity by validators and other parties.
+   */
   binaryHash: Uint8Array;
   /**
    * spawn time is the time on the provider chain at which the consumer chain genesis is finalized and all validators
@@ -42,17 +49,43 @@ export interface ConsumerAdditionProposal {
     | Date
     | undefined;
   /**
-   * Indicates whether the outstanding unbonding operations should be released
-   * in case of a channel time-outs. When set to true, a governance proposal
-   * on the provider chain would be necessary to release the locked funds.
+   * Unbonding period for the consumer,
+   * which should be smaller than that of the provider in general.
    */
-  lockUnbondingOnTimeout: boolean;
+  unbondingPeriod:
+    | Duration
+    | undefined;
+  /** Sent CCV related IBC packets will timeout after this duration */
+  ccvTimeoutPeriod:
+    | Duration
+    | undefined;
+  /** Sent transfer related IBC packets will timeout after this duration */
+  transferTimeoutPeriod:
+    | Duration
+    | undefined;
+  /**
+   * The fraction of tokens allocated to the consumer redistribution address
+   * during distribution events. The fraction is a string representing a
+   * decimal number. For example "0.75" would represent 75%.
+   */
+  consumerRedistributionFraction: string;
+  /**
+   * BlocksPerDistributionTransmission is the number of blocks between ibc-token-transfers from the consumer chain to the provider chain.
+   * On sending transmission event, `consumer_redistribution_fraction` of the accumulated tokens are sent to the consumer redistribution address.
+   */
+  blocksPerDistributionTransmission: number;
+  /**
+   * The number of historical info entries to persist in store.
+   * This param is a part of the cosmos sdk staking module. In the case of
+   * a ccv enabled consumer chain, the ccv module acts as the staking module.
+   */
+  historicalEntries: number;
 }
 
 /**
  * ConsumerRemovalProposal is a governance proposal on the provider chain to remove (and stop) a consumer chain.
  * If it passes, all the consumer chain's state is removed from the provider chain. The outstanding unbonding
- * operation funds are released if the LockUnbondingOnTimeout parameter is set to false for the consumer chain ID.
+ * operation funds are released.
  */
 export interface ConsumerRemovalProposal {
   /** the title of the proposal */
@@ -65,13 +98,41 @@ export interface ConsumerRemovalProposal {
   stopTime: Date | undefined;
 }
 
+/**
+ * A persisted queue entry indicating that a slash packet data instance needs to be handled.
+ * This type belongs in the "global" queue, to coordinate slash packet handling times between consumers.
+ */
+export interface GlobalSlashEntry {
+  /**
+   * Block time that slash packet was received by provider chain.
+   * This field is used for store key iteration ordering.
+   */
+  recvTime:
+    | Date
+    | undefined;
+  /** The consumer that sent a slash packet. */
+  consumerChainId: string;
+  /**
+   * The IBC sequence number of the recv packet.
+   * This field is used in the store key to ensure uniqueness.
+   */
+  ibcSeqNum: number;
+  /**
+   * The provider's consensus address of the validator being slashed.
+   * This field is used to obtain validator power in HandleThrottleQueues.
+   *
+   * This field is not used in the store key, but is persisted in value bytes, see QueueGlobalSlashEntry.
+   */
+  providerValConsAddr: Uint8Array;
+}
+
 /** Params defines the parameters for CCV Provider module */
 export interface Params {
   templateClient:
     | ClientState
     | undefined;
   /** TrustingPeriodFraction is used to compute the consumer and provider IBC client's TrustingPeriod from the chain defined UnbondingPeriod */
-  trustingPeriodFraction: number;
+  trustingPeriodFraction: string;
   /** Sent IBC packets will timeout after this duration */
   ccvTimeoutPeriod:
     | Duration
@@ -86,7 +147,23 @@ export interface Params {
    * the vsc_timeout_period is a provider-side param that enables the provider
    * to timeout VSC packets even when a consumer chain is not live.
    */
-  vscTimeoutPeriod: Duration | undefined;
+  vscTimeoutPeriod:
+    | Duration
+    | undefined;
+  /** The period for which the slash meter is replenished */
+  slashMeterReplenishPeriod:
+    | Duration
+    | undefined;
+  /**
+   * The fraction of total voting power that is replenished to the slash meter every replenish period.
+   * This param also serves as a maximum fraction of total voting power that the slash meter can hold.
+   */
+  slashMeterReplenishFraction: string;
+  /**
+   * The maximum amount of throttled slash or vsc matured packets
+   * that can be queued for a single consumer before the provider chain halts.
+   */
+  maxThrottledPackets: number;
 }
 
 export interface HandshakeMetadata {
@@ -114,6 +191,51 @@ export interface ConsumerRemovalProposals {
   pending: ConsumerRemovalProposal[];
 }
 
+/** AddressList contains a list of consensus addresses */
+export interface AddressList {
+  addresses: Uint8Array[];
+}
+
+export interface ChannelToChain {
+  channelId: string;
+  chainId: string;
+}
+
+/**
+ * VscUnbondingOps contains the IDs of unbonding operations that are waiting for
+ * at least one VSCMaturedPacket with vscID from a consumer chain
+ */
+export interface VscUnbondingOps {
+  vscId: number;
+  unbondingOpIds: number[];
+}
+
+/**
+ * UnbondingOp contains the ids of consumer chains that need to unbond before
+ * the unbonding operation with the given ID can unbond
+ */
+export interface UnbondingOp {
+  id: number;
+  /** consumer chains that are still unbonding */
+  unbondingConsumerChains: string[];
+}
+
+export interface InitTimeoutTimestamp {
+  chainId: string;
+  timestamp: number;
+}
+
+export interface VscSendTimestamp {
+  vscId: number;
+  timestamp: Date | undefined;
+}
+
+export interface KeyAssignmentReplacement {
+  providerAddr: Uint8Array;
+  prevCKey: PublicKey | undefined;
+  power: number;
+}
+
 function createBaseConsumerAdditionProposal(): ConsumerAdditionProposal {
   return {
     title: "",
@@ -123,7 +245,12 @@ function createBaseConsumerAdditionProposal(): ConsumerAdditionProposal {
     genesisHash: new Uint8Array(),
     binaryHash: new Uint8Array(),
     spawnTime: undefined,
-    lockUnbondingOnTimeout: false,
+    unbondingPeriod: undefined,
+    ccvTimeoutPeriod: undefined,
+    transferTimeoutPeriod: undefined,
+    consumerRedistributionFraction: "",
+    blocksPerDistributionTransmission: 0,
+    historicalEntries: 0,
   };
 }
 
@@ -150,8 +277,23 @@ export const ConsumerAdditionProposal = {
     if (message.spawnTime !== undefined) {
       Timestamp.encode(toTimestamp(message.spawnTime), writer.uint32(58).fork()).ldelim();
     }
-    if (message.lockUnbondingOnTimeout === true) {
-      writer.uint32(64).bool(message.lockUnbondingOnTimeout);
+    if (message.unbondingPeriod !== undefined) {
+      Duration.encode(message.unbondingPeriod, writer.uint32(66).fork()).ldelim();
+    }
+    if (message.ccvTimeoutPeriod !== undefined) {
+      Duration.encode(message.ccvTimeoutPeriod, writer.uint32(74).fork()).ldelim();
+    }
+    if (message.transferTimeoutPeriod !== undefined) {
+      Duration.encode(message.transferTimeoutPeriod, writer.uint32(82).fork()).ldelim();
+    }
+    if (message.consumerRedistributionFraction !== "") {
+      writer.uint32(90).string(message.consumerRedistributionFraction);
+    }
+    if (message.blocksPerDistributionTransmission !== 0) {
+      writer.uint32(96).int64(message.blocksPerDistributionTransmission);
+    }
+    if (message.historicalEntries !== 0) {
+      writer.uint32(104).int64(message.historicalEntries);
     }
     return writer;
   },
@@ -185,7 +327,22 @@ export const ConsumerAdditionProposal = {
           message.spawnTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           break;
         case 8:
-          message.lockUnbondingOnTimeout = reader.bool();
+          message.unbondingPeriod = Duration.decode(reader, reader.uint32());
+          break;
+        case 9:
+          message.ccvTimeoutPeriod = Duration.decode(reader, reader.uint32());
+          break;
+        case 10:
+          message.transferTimeoutPeriod = Duration.decode(reader, reader.uint32());
+          break;
+        case 11:
+          message.consumerRedistributionFraction = reader.string();
+          break;
+        case 12:
+          message.blocksPerDistributionTransmission = longToNumber(reader.int64() as Long);
+          break;
+        case 13:
+          message.historicalEntries = longToNumber(reader.int64() as Long);
           break;
         default:
           reader.skipType(tag & 7);
@@ -204,7 +361,18 @@ export const ConsumerAdditionProposal = {
       genesisHash: isSet(object.genesisHash) ? bytesFromBase64(object.genesisHash) : new Uint8Array(),
       binaryHash: isSet(object.binaryHash) ? bytesFromBase64(object.binaryHash) : new Uint8Array(),
       spawnTime: isSet(object.spawnTime) ? fromJsonTimestamp(object.spawnTime) : undefined,
-      lockUnbondingOnTimeout: isSet(object.lockUnbondingOnTimeout) ? Boolean(object.lockUnbondingOnTimeout) : false,
+      unbondingPeriod: isSet(object.unbondingPeriod) ? Duration.fromJSON(object.unbondingPeriod) : undefined,
+      ccvTimeoutPeriod: isSet(object.ccvTimeoutPeriod) ? Duration.fromJSON(object.ccvTimeoutPeriod) : undefined,
+      transferTimeoutPeriod: isSet(object.transferTimeoutPeriod)
+        ? Duration.fromJSON(object.transferTimeoutPeriod)
+        : undefined,
+      consumerRedistributionFraction: isSet(object.consumerRedistributionFraction)
+        ? String(object.consumerRedistributionFraction)
+        : "",
+      blocksPerDistributionTransmission: isSet(object.blocksPerDistributionTransmission)
+        ? Number(object.blocksPerDistributionTransmission)
+        : 0,
+      historicalEntries: isSet(object.historicalEntries) ? Number(object.historicalEntries) : 0,
     };
   },
 
@@ -222,7 +390,18 @@ export const ConsumerAdditionProposal = {
     message.binaryHash !== undefined
       && (obj.binaryHash = base64FromBytes(message.binaryHash !== undefined ? message.binaryHash : new Uint8Array()));
     message.spawnTime !== undefined && (obj.spawnTime = message.spawnTime.toISOString());
-    message.lockUnbondingOnTimeout !== undefined && (obj.lockUnbondingOnTimeout = message.lockUnbondingOnTimeout);
+    message.unbondingPeriod !== undefined
+      && (obj.unbondingPeriod = message.unbondingPeriod ? Duration.toJSON(message.unbondingPeriod) : undefined);
+    message.ccvTimeoutPeriod !== undefined
+      && (obj.ccvTimeoutPeriod = message.ccvTimeoutPeriod ? Duration.toJSON(message.ccvTimeoutPeriod) : undefined);
+    message.transferTimeoutPeriod !== undefined && (obj.transferTimeoutPeriod = message.transferTimeoutPeriod
+      ? Duration.toJSON(message.transferTimeoutPeriod)
+      : undefined);
+    message.consumerRedistributionFraction !== undefined
+      && (obj.consumerRedistributionFraction = message.consumerRedistributionFraction);
+    message.blocksPerDistributionTransmission !== undefined
+      && (obj.blocksPerDistributionTransmission = Math.round(message.blocksPerDistributionTransmission));
+    message.historicalEntries !== undefined && (obj.historicalEntries = Math.round(message.historicalEntries));
     return obj;
   },
 
@@ -237,7 +416,19 @@ export const ConsumerAdditionProposal = {
     message.genesisHash = object.genesisHash ?? new Uint8Array();
     message.binaryHash = object.binaryHash ?? new Uint8Array();
     message.spawnTime = object.spawnTime ?? undefined;
-    message.lockUnbondingOnTimeout = object.lockUnbondingOnTimeout ?? false;
+    message.unbondingPeriod = (object.unbondingPeriod !== undefined && object.unbondingPeriod !== null)
+      ? Duration.fromPartial(object.unbondingPeriod)
+      : undefined;
+    message.ccvTimeoutPeriod = (object.ccvTimeoutPeriod !== undefined && object.ccvTimeoutPeriod !== null)
+      ? Duration.fromPartial(object.ccvTimeoutPeriod)
+      : undefined;
+    message.transferTimeoutPeriod =
+      (object.transferTimeoutPeriod !== undefined && object.transferTimeoutPeriod !== null)
+        ? Duration.fromPartial(object.transferTimeoutPeriod)
+        : undefined;
+    message.consumerRedistributionFraction = object.consumerRedistributionFraction ?? "";
+    message.blocksPerDistributionTransmission = object.blocksPerDistributionTransmission ?? 0;
+    message.historicalEntries = object.historicalEntries ?? 0;
     return message;
   },
 };
@@ -318,13 +509,97 @@ export const ConsumerRemovalProposal = {
   },
 };
 
+function createBaseGlobalSlashEntry(): GlobalSlashEntry {
+  return { recvTime: undefined, consumerChainId: "", ibcSeqNum: 0, providerValConsAddr: new Uint8Array() };
+}
+
+export const GlobalSlashEntry = {
+  encode(message: GlobalSlashEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.recvTime !== undefined) {
+      Timestamp.encode(toTimestamp(message.recvTime), writer.uint32(10).fork()).ldelim();
+    }
+    if (message.consumerChainId !== "") {
+      writer.uint32(18).string(message.consumerChainId);
+    }
+    if (message.ibcSeqNum !== 0) {
+      writer.uint32(24).uint64(message.ibcSeqNum);
+    }
+    if (message.providerValConsAddr.length !== 0) {
+      writer.uint32(34).bytes(message.providerValConsAddr);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): GlobalSlashEntry {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGlobalSlashEntry();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.recvTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          break;
+        case 2:
+          message.consumerChainId = reader.string();
+          break;
+        case 3:
+          message.ibcSeqNum = longToNumber(reader.uint64() as Long);
+          break;
+        case 4:
+          message.providerValConsAddr = reader.bytes();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GlobalSlashEntry {
+    return {
+      recvTime: isSet(object.recvTime) ? fromJsonTimestamp(object.recvTime) : undefined,
+      consumerChainId: isSet(object.consumerChainId) ? String(object.consumerChainId) : "",
+      ibcSeqNum: isSet(object.ibcSeqNum) ? Number(object.ibcSeqNum) : 0,
+      providerValConsAddr: isSet(object.providerValConsAddr)
+        ? bytesFromBase64(object.providerValConsAddr)
+        : new Uint8Array(),
+    };
+  },
+
+  toJSON(message: GlobalSlashEntry): unknown {
+    const obj: any = {};
+    message.recvTime !== undefined && (obj.recvTime = message.recvTime.toISOString());
+    message.consumerChainId !== undefined && (obj.consumerChainId = message.consumerChainId);
+    message.ibcSeqNum !== undefined && (obj.ibcSeqNum = Math.round(message.ibcSeqNum));
+    message.providerValConsAddr !== undefined
+      && (obj.providerValConsAddr = base64FromBytes(
+        message.providerValConsAddr !== undefined ? message.providerValConsAddr : new Uint8Array(),
+      ));
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<GlobalSlashEntry>, I>>(object: I): GlobalSlashEntry {
+    const message = createBaseGlobalSlashEntry();
+    message.recvTime = object.recvTime ?? undefined;
+    message.consumerChainId = object.consumerChainId ?? "";
+    message.ibcSeqNum = object.ibcSeqNum ?? 0;
+    message.providerValConsAddr = object.providerValConsAddr ?? new Uint8Array();
+    return message;
+  },
+};
+
 function createBaseParams(): Params {
   return {
     templateClient: undefined,
-    trustingPeriodFraction: 0,
+    trustingPeriodFraction: "",
     ccvTimeoutPeriod: undefined,
     initTimeoutPeriod: undefined,
     vscTimeoutPeriod: undefined,
+    slashMeterReplenishPeriod: undefined,
+    slashMeterReplenishFraction: "",
+    maxThrottledPackets: 0,
   };
 }
 
@@ -333,8 +608,8 @@ export const Params = {
     if (message.templateClient !== undefined) {
       ClientState.encode(message.templateClient, writer.uint32(10).fork()).ldelim();
     }
-    if (message.trustingPeriodFraction !== 0) {
-      writer.uint32(16).int64(message.trustingPeriodFraction);
+    if (message.trustingPeriodFraction !== "") {
+      writer.uint32(18).string(message.trustingPeriodFraction);
     }
     if (message.ccvTimeoutPeriod !== undefined) {
       Duration.encode(message.ccvTimeoutPeriod, writer.uint32(26).fork()).ldelim();
@@ -344,6 +619,15 @@ export const Params = {
     }
     if (message.vscTimeoutPeriod !== undefined) {
       Duration.encode(message.vscTimeoutPeriod, writer.uint32(42).fork()).ldelim();
+    }
+    if (message.slashMeterReplenishPeriod !== undefined) {
+      Duration.encode(message.slashMeterReplenishPeriod, writer.uint32(50).fork()).ldelim();
+    }
+    if (message.slashMeterReplenishFraction !== "") {
+      writer.uint32(58).string(message.slashMeterReplenishFraction);
+    }
+    if (message.maxThrottledPackets !== 0) {
+      writer.uint32(64).int64(message.maxThrottledPackets);
     }
     return writer;
   },
@@ -359,7 +643,7 @@ export const Params = {
           message.templateClient = ClientState.decode(reader, reader.uint32());
           break;
         case 2:
-          message.trustingPeriodFraction = longToNumber(reader.int64() as Long);
+          message.trustingPeriodFraction = reader.string();
           break;
         case 3:
           message.ccvTimeoutPeriod = Duration.decode(reader, reader.uint32());
@@ -369,6 +653,15 @@ export const Params = {
           break;
         case 5:
           message.vscTimeoutPeriod = Duration.decode(reader, reader.uint32());
+          break;
+        case 6:
+          message.slashMeterReplenishPeriod = Duration.decode(reader, reader.uint32());
+          break;
+        case 7:
+          message.slashMeterReplenishFraction = reader.string();
+          break;
+        case 8:
+          message.maxThrottledPackets = longToNumber(reader.int64() as Long);
           break;
         default:
           reader.skipType(tag & 7);
@@ -381,10 +674,17 @@ export const Params = {
   fromJSON(object: any): Params {
     return {
       templateClient: isSet(object.templateClient) ? ClientState.fromJSON(object.templateClient) : undefined,
-      trustingPeriodFraction: isSet(object.trustingPeriodFraction) ? Number(object.trustingPeriodFraction) : 0,
+      trustingPeriodFraction: isSet(object.trustingPeriodFraction) ? String(object.trustingPeriodFraction) : "",
       ccvTimeoutPeriod: isSet(object.ccvTimeoutPeriod) ? Duration.fromJSON(object.ccvTimeoutPeriod) : undefined,
       initTimeoutPeriod: isSet(object.initTimeoutPeriod) ? Duration.fromJSON(object.initTimeoutPeriod) : undefined,
       vscTimeoutPeriod: isSet(object.vscTimeoutPeriod) ? Duration.fromJSON(object.vscTimeoutPeriod) : undefined,
+      slashMeterReplenishPeriod: isSet(object.slashMeterReplenishPeriod)
+        ? Duration.fromJSON(object.slashMeterReplenishPeriod)
+        : undefined,
+      slashMeterReplenishFraction: isSet(object.slashMeterReplenishFraction)
+        ? String(object.slashMeterReplenishFraction)
+        : "",
+      maxThrottledPackets: isSet(object.maxThrottledPackets) ? Number(object.maxThrottledPackets) : 0,
     };
   },
 
@@ -392,14 +692,20 @@ export const Params = {
     const obj: any = {};
     message.templateClient !== undefined
       && (obj.templateClient = message.templateClient ? ClientState.toJSON(message.templateClient) : undefined);
-    message.trustingPeriodFraction !== undefined
-      && (obj.trustingPeriodFraction = Math.round(message.trustingPeriodFraction));
+    message.trustingPeriodFraction !== undefined && (obj.trustingPeriodFraction = message.trustingPeriodFraction);
     message.ccvTimeoutPeriod !== undefined
       && (obj.ccvTimeoutPeriod = message.ccvTimeoutPeriod ? Duration.toJSON(message.ccvTimeoutPeriod) : undefined);
     message.initTimeoutPeriod !== undefined
       && (obj.initTimeoutPeriod = message.initTimeoutPeriod ? Duration.toJSON(message.initTimeoutPeriod) : undefined);
     message.vscTimeoutPeriod !== undefined
       && (obj.vscTimeoutPeriod = message.vscTimeoutPeriod ? Duration.toJSON(message.vscTimeoutPeriod) : undefined);
+    message.slashMeterReplenishPeriod !== undefined
+      && (obj.slashMeterReplenishPeriod = message.slashMeterReplenishPeriod
+        ? Duration.toJSON(message.slashMeterReplenishPeriod)
+        : undefined);
+    message.slashMeterReplenishFraction !== undefined
+      && (obj.slashMeterReplenishFraction = message.slashMeterReplenishFraction);
+    message.maxThrottledPackets !== undefined && (obj.maxThrottledPackets = Math.round(message.maxThrottledPackets));
     return obj;
   },
 
@@ -408,7 +714,7 @@ export const Params = {
     message.templateClient = (object.templateClient !== undefined && object.templateClient !== null)
       ? ClientState.fromPartial(object.templateClient)
       : undefined;
-    message.trustingPeriodFraction = object.trustingPeriodFraction ?? 0;
+    message.trustingPeriodFraction = object.trustingPeriodFraction ?? "";
     message.ccvTimeoutPeriod = (object.ccvTimeoutPeriod !== undefined && object.ccvTimeoutPeriod !== null)
       ? Duration.fromPartial(object.ccvTimeoutPeriod)
       : undefined;
@@ -418,6 +724,12 @@ export const Params = {
     message.vscTimeoutPeriod = (object.vscTimeoutPeriod !== undefined && object.vscTimeoutPeriod !== null)
       ? Duration.fromPartial(object.vscTimeoutPeriod)
       : undefined;
+    message.slashMeterReplenishPeriod =
+      (object.slashMeterReplenishPeriod !== undefined && object.slashMeterReplenishPeriod !== null)
+        ? Duration.fromPartial(object.slashMeterReplenishPeriod)
+        : undefined;
+    message.slashMeterReplenishFraction = object.slashMeterReplenishFraction ?? "";
+    message.maxThrottledPackets = object.maxThrottledPackets ?? 0;
     return message;
   },
 };
@@ -637,6 +949,439 @@ export const ConsumerRemovalProposals = {
   fromPartial<I extends Exact<DeepPartial<ConsumerRemovalProposals>, I>>(object: I): ConsumerRemovalProposals {
     const message = createBaseConsumerRemovalProposals();
     message.pending = object.pending?.map((e) => ConsumerRemovalProposal.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseAddressList(): AddressList {
+  return { addresses: [] };
+}
+
+export const AddressList = {
+  encode(message: AddressList, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.addresses) {
+      writer.uint32(10).bytes(v!);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): AddressList {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddressList();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.addresses.push(reader.bytes());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddressList {
+    return { addresses: Array.isArray(object?.addresses) ? object.addresses.map((e: any) => bytesFromBase64(e)) : [] };
+  },
+
+  toJSON(message: AddressList): unknown {
+    const obj: any = {};
+    if (message.addresses) {
+      obj.addresses = message.addresses.map((e) => base64FromBytes(e !== undefined ? e : new Uint8Array()));
+    } else {
+      obj.addresses = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<AddressList>, I>>(object: I): AddressList {
+    const message = createBaseAddressList();
+    message.addresses = object.addresses?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseChannelToChain(): ChannelToChain {
+  return { channelId: "", chainId: "" };
+}
+
+export const ChannelToChain = {
+  encode(message: ChannelToChain, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.channelId !== "") {
+      writer.uint32(10).string(message.channelId);
+    }
+    if (message.chainId !== "") {
+      writer.uint32(18).string(message.chainId);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): ChannelToChain {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChannelToChain();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.channelId = reader.string();
+          break;
+        case 2:
+          message.chainId = reader.string();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ChannelToChain {
+    return {
+      channelId: isSet(object.channelId) ? String(object.channelId) : "",
+      chainId: isSet(object.chainId) ? String(object.chainId) : "",
+    };
+  },
+
+  toJSON(message: ChannelToChain): unknown {
+    const obj: any = {};
+    message.channelId !== undefined && (obj.channelId = message.channelId);
+    message.chainId !== undefined && (obj.chainId = message.chainId);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<ChannelToChain>, I>>(object: I): ChannelToChain {
+    const message = createBaseChannelToChain();
+    message.channelId = object.channelId ?? "";
+    message.chainId = object.chainId ?? "";
+    return message;
+  },
+};
+
+function createBaseVscUnbondingOps(): VscUnbondingOps {
+  return { vscId: 0, unbondingOpIds: [] };
+}
+
+export const VscUnbondingOps = {
+  encode(message: VscUnbondingOps, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.vscId !== 0) {
+      writer.uint32(8).uint64(message.vscId);
+    }
+    writer.uint32(18).fork();
+    for (const v of message.unbondingOpIds) {
+      writer.uint64(v);
+    }
+    writer.ldelim();
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): VscUnbondingOps {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVscUnbondingOps();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.vscId = longToNumber(reader.uint64() as Long);
+          break;
+        case 2:
+          if ((tag & 7) === 2) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.unbondingOpIds.push(longToNumber(reader.uint64() as Long));
+            }
+          } else {
+            message.unbondingOpIds.push(longToNumber(reader.uint64() as Long));
+          }
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): VscUnbondingOps {
+    return {
+      vscId: isSet(object.vscId) ? Number(object.vscId) : 0,
+      unbondingOpIds: Array.isArray(object?.unbondingOpIds) ? object.unbondingOpIds.map((e: any) => Number(e)) : [],
+    };
+  },
+
+  toJSON(message: VscUnbondingOps): unknown {
+    const obj: any = {};
+    message.vscId !== undefined && (obj.vscId = Math.round(message.vscId));
+    if (message.unbondingOpIds) {
+      obj.unbondingOpIds = message.unbondingOpIds.map((e) => Math.round(e));
+    } else {
+      obj.unbondingOpIds = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<VscUnbondingOps>, I>>(object: I): VscUnbondingOps {
+    const message = createBaseVscUnbondingOps();
+    message.vscId = object.vscId ?? 0;
+    message.unbondingOpIds = object.unbondingOpIds?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseUnbondingOp(): UnbondingOp {
+  return { id: 0, unbondingConsumerChains: [] };
+}
+
+export const UnbondingOp = {
+  encode(message: UnbondingOp, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.id !== 0) {
+      writer.uint32(8).uint64(message.id);
+    }
+    for (const v of message.unbondingConsumerChains) {
+      writer.uint32(18).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): UnbondingOp {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUnbondingOp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.id = longToNumber(reader.uint64() as Long);
+          break;
+        case 2:
+          message.unbondingConsumerChains.push(reader.string());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UnbondingOp {
+    return {
+      id: isSet(object.id) ? Number(object.id) : 0,
+      unbondingConsumerChains: Array.isArray(object?.unbondingConsumerChains)
+        ? object.unbondingConsumerChains.map((e: any) => String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: UnbondingOp): unknown {
+    const obj: any = {};
+    message.id !== undefined && (obj.id = Math.round(message.id));
+    if (message.unbondingConsumerChains) {
+      obj.unbondingConsumerChains = message.unbondingConsumerChains.map((e) => e);
+    } else {
+      obj.unbondingConsumerChains = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<UnbondingOp>, I>>(object: I): UnbondingOp {
+    const message = createBaseUnbondingOp();
+    message.id = object.id ?? 0;
+    message.unbondingConsumerChains = object.unbondingConsumerChains?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseInitTimeoutTimestamp(): InitTimeoutTimestamp {
+  return { chainId: "", timestamp: 0 };
+}
+
+export const InitTimeoutTimestamp = {
+  encode(message: InitTimeoutTimestamp, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.chainId !== "") {
+      writer.uint32(10).string(message.chainId);
+    }
+    if (message.timestamp !== 0) {
+      writer.uint32(16).uint64(message.timestamp);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): InitTimeoutTimestamp {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseInitTimeoutTimestamp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.chainId = reader.string();
+          break;
+        case 2:
+          message.timestamp = longToNumber(reader.uint64() as Long);
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): InitTimeoutTimestamp {
+    return {
+      chainId: isSet(object.chainId) ? String(object.chainId) : "",
+      timestamp: isSet(object.timestamp) ? Number(object.timestamp) : 0,
+    };
+  },
+
+  toJSON(message: InitTimeoutTimestamp): unknown {
+    const obj: any = {};
+    message.chainId !== undefined && (obj.chainId = message.chainId);
+    message.timestamp !== undefined && (obj.timestamp = Math.round(message.timestamp));
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<InitTimeoutTimestamp>, I>>(object: I): InitTimeoutTimestamp {
+    const message = createBaseInitTimeoutTimestamp();
+    message.chainId = object.chainId ?? "";
+    message.timestamp = object.timestamp ?? 0;
+    return message;
+  },
+};
+
+function createBaseVscSendTimestamp(): VscSendTimestamp {
+  return { vscId: 0, timestamp: undefined };
+}
+
+export const VscSendTimestamp = {
+  encode(message: VscSendTimestamp, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.vscId !== 0) {
+      writer.uint32(8).uint64(message.vscId);
+    }
+    if (message.timestamp !== undefined) {
+      Timestamp.encode(toTimestamp(message.timestamp), writer.uint32(18).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): VscSendTimestamp {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVscSendTimestamp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.vscId = longToNumber(reader.uint64() as Long);
+          break;
+        case 2:
+          message.timestamp = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): VscSendTimestamp {
+    return {
+      vscId: isSet(object.vscId) ? Number(object.vscId) : 0,
+      timestamp: isSet(object.timestamp) ? fromJsonTimestamp(object.timestamp) : undefined,
+    };
+  },
+
+  toJSON(message: VscSendTimestamp): unknown {
+    const obj: any = {};
+    message.vscId !== undefined && (obj.vscId = Math.round(message.vscId));
+    message.timestamp !== undefined && (obj.timestamp = message.timestamp.toISOString());
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<VscSendTimestamp>, I>>(object: I): VscSendTimestamp {
+    const message = createBaseVscSendTimestamp();
+    message.vscId = object.vscId ?? 0;
+    message.timestamp = object.timestamp ?? undefined;
+    return message;
+  },
+};
+
+function createBaseKeyAssignmentReplacement(): KeyAssignmentReplacement {
+  return { providerAddr: new Uint8Array(), prevCKey: undefined, power: 0 };
+}
+
+export const KeyAssignmentReplacement = {
+  encode(message: KeyAssignmentReplacement, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.providerAddr.length !== 0) {
+      writer.uint32(10).bytes(message.providerAddr);
+    }
+    if (message.prevCKey !== undefined) {
+      PublicKey.encode(message.prevCKey, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.power !== 0) {
+      writer.uint32(24).int64(message.power);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): KeyAssignmentReplacement {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseKeyAssignmentReplacement();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.providerAddr = reader.bytes();
+          break;
+        case 2:
+          message.prevCKey = PublicKey.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.power = longToNumber(reader.int64() as Long);
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): KeyAssignmentReplacement {
+    return {
+      providerAddr: isSet(object.providerAddr) ? bytesFromBase64(object.providerAddr) : new Uint8Array(),
+      prevCKey: isSet(object.prevCKey) ? PublicKey.fromJSON(object.prevCKey) : undefined,
+      power: isSet(object.power) ? Number(object.power) : 0,
+    };
+  },
+
+  toJSON(message: KeyAssignmentReplacement): unknown {
+    const obj: any = {};
+    message.providerAddr !== undefined
+      && (obj.providerAddr = base64FromBytes(
+        message.providerAddr !== undefined ? message.providerAddr : new Uint8Array(),
+      ));
+    message.prevCKey !== undefined
+      && (obj.prevCKey = message.prevCKey ? PublicKey.toJSON(message.prevCKey) : undefined);
+    message.power !== undefined && (obj.power = Math.round(message.power));
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<KeyAssignmentReplacement>, I>>(object: I): KeyAssignmentReplacement {
+    const message = createBaseKeyAssignmentReplacement();
+    message.providerAddr = object.providerAddr ?? new Uint8Array();
+    message.prevCKey = (object.prevCKey !== undefined && object.prevCKey !== null)
+      ? PublicKey.fromPartial(object.prevCKey)
+      : undefined;
+    message.power = object.power ?? 0;
     return message;
   },
 };

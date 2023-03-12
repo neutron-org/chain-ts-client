@@ -7,21 +7,44 @@ import { msgTypes } from './registry';
 import { IgniteClient } from "../client"
 import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
+import { MsgAssignConsumerKey } from "./types/interchain_security/ccv/provider/v1/tx";
 
 import { ConsumerState as typeConsumerState} from "./types"
-import { UnbondingOpIndex as typeUnbondingOpIndex} from "./types"
 import { ValsetUpdateIdToHeight as typeValsetUpdateIdToHeight} from "./types"
+import { ValidatorConsumerPubKey as typeValidatorConsumerPubKey} from "./types"
+import { ValidatorByConsumerAddr as typeValidatorByConsumerAddr} from "./types"
+import { ConsumerAddrsToPrune as typeConsumerAddrsToPrune} from "./types"
 import { ConsumerAdditionProposal as typeConsumerAdditionProposal} from "./types"
 import { ConsumerRemovalProposal as typeConsumerRemovalProposal} from "./types"
+import { GlobalSlashEntry as typeGlobalSlashEntry} from "./types"
 import { Params as typeParams} from "./types"
 import { HandshakeMetadata as typeHandshakeMetadata} from "./types"
 import { SlashAcks as typeSlashAcks} from "./types"
 import { ConsumerAdditionProposals as typeConsumerAdditionProposals} from "./types"
 import { ConsumerRemovalProposals as typeConsumerRemovalProposals} from "./types"
+import { AddressList as typeAddressList} from "./types"
+import { ChannelToChain as typeChannelToChain} from "./types"
+import { VscUnbondingOps as typeVscUnbondingOps} from "./types"
+import { UnbondingOp as typeUnbondingOp} from "./types"
+import { InitTimeoutTimestamp as typeInitTimeoutTimestamp} from "./types"
+import { VscSendTimestamp as typeVscSendTimestamp} from "./types"
+import { KeyAssignmentReplacement as typeKeyAssignmentReplacement} from "./types"
 import { Chain as typeChain} from "./types"
+import { ThrottledSlashPacket as typeThrottledSlashPacket} from "./types"
+import { ThrottledPacketDataWrapper as typeThrottledPacketDataWrapper} from "./types"
 
-export {  };
+export { MsgAssignConsumerKey };
 
+type sendMsgAssignConsumerKeyParams = {
+  value: MsgAssignConsumerKey,
+  fee?: StdFee,
+  memo?: string
+};
+
+
+type msgAssignConsumerKeyParams = {
+  value: MsgAssignConsumerKey,
+};
 
 
 export const registry = new Registry(msgTypes);
@@ -53,6 +76,28 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 
   return {
 		
+		async sendMsgAssignConsumerKey({ value, fee, memo }: sendMsgAssignConsumerKeyParams): Promise<DeliverTxResponse> {
+			if (!signer) {
+					throw new Error('TxClient:sendMsgAssignConsumerKey: Unable to sign Tx. Signer is not present.')
+			}
+			try {			
+				const { address } = (await signer.getAccounts())[0]; 
+				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
+				let msg = this.msgAssignConsumerKey({ value: MsgAssignConsumerKey.fromPartial(value) })
+				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
+			} catch (e: any) {
+				throw new Error('TxClient:sendMsgAssignConsumerKey: Could not broadcast Tx: '+ e.message)
+			}
+		},
+		
+		
+		msgAssignConsumerKey({ value }: msgAssignConsumerKeyParams): EncodeObject {
+			try {
+				return { typeUrl: "/interchain_security.ccv.provider.v1.MsgAssignConsumerKey", value: MsgAssignConsumerKey.fromPartial( value ) }  
+			} catch (e: any) {
+				throw new Error('TxClient:MsgAssignConsumerKey: Could not create message: ' + e.message)
+			}
+		},
 		
 	}
 };
@@ -77,16 +122,28 @@ class SDKModule {
 		this.updateTX(client);
 		this.structure =  {
 						ConsumerState: getStructure(typeConsumerState.fromPartial({})),
-						UnbondingOpIndex: getStructure(typeUnbondingOpIndex.fromPartial({})),
 						ValsetUpdateIdToHeight: getStructure(typeValsetUpdateIdToHeight.fromPartial({})),
+						ValidatorConsumerPubKey: getStructure(typeValidatorConsumerPubKey.fromPartial({})),
+						ValidatorByConsumerAddr: getStructure(typeValidatorByConsumerAddr.fromPartial({})),
+						ConsumerAddrsToPrune: getStructure(typeConsumerAddrsToPrune.fromPartial({})),
 						ConsumerAdditionProposal: getStructure(typeConsumerAdditionProposal.fromPartial({})),
 						ConsumerRemovalProposal: getStructure(typeConsumerRemovalProposal.fromPartial({})),
+						GlobalSlashEntry: getStructure(typeGlobalSlashEntry.fromPartial({})),
 						Params: getStructure(typeParams.fromPartial({})),
 						HandshakeMetadata: getStructure(typeHandshakeMetadata.fromPartial({})),
 						SlashAcks: getStructure(typeSlashAcks.fromPartial({})),
 						ConsumerAdditionProposals: getStructure(typeConsumerAdditionProposals.fromPartial({})),
 						ConsumerRemovalProposals: getStructure(typeConsumerRemovalProposals.fromPartial({})),
+						AddressList: getStructure(typeAddressList.fromPartial({})),
+						ChannelToChain: getStructure(typeChannelToChain.fromPartial({})),
+						VscUnbondingOps: getStructure(typeVscUnbondingOps.fromPartial({})),
+						UnbondingOp: getStructure(typeUnbondingOp.fromPartial({})),
+						InitTimeoutTimestamp: getStructure(typeInitTimeoutTimestamp.fromPartial({})),
+						VscSendTimestamp: getStructure(typeVscSendTimestamp.fromPartial({})),
+						KeyAssignmentReplacement: getStructure(typeKeyAssignmentReplacement.fromPartial({})),
 						Chain: getStructure(typeChain.fromPartial({})),
+						ThrottledSlashPacket: getStructure(typeThrottledSlashPacket.fromPartial({})),
+						ThrottledPacketDataWrapper: getStructure(typeThrottledPacketDataWrapper.fromPartial({})),
 						
 		};
 		client.on('signer-changed',(signer) => {			

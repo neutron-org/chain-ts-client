@@ -3,7 +3,8 @@ import Long from "long";
 import _m0 from "protobufjs/minimal";
 import { ClientState, ConsensusState } from "../../../../ibc/lightclients/tendermint/v1/tendermint";
 import { ValidatorUpdate } from "../../../../tendermint/abci/types";
-import { Params, SlashRequests } from "./consumer";
+import { ConsumerPacketDataList } from "../../v1/ccv";
+import { LastTransmissionBlockHeight, MaturingVSCPacket, Params } from "./consumer";
 
 export const protobufPackage = "interchain_security.ccv.consumer.v1";
 
@@ -12,9 +13,9 @@ export interface GenesisState {
   params:
     | Params
     | undefined;
-  /** empty for a completely new chain */
+  /** empty for a new chain, filled in on restart. */
   providerClientId: string;
-  /** empty for a completely new chain */
+  /** empty for a new chain, filled in on restart. */
   providerChannelId: string;
   /** true for new chain GenesisState, false for chain restart. */
   newChain: boolean;
@@ -26,25 +27,20 @@ export interface GenesisState {
   providerConsensusState:
     | ConsensusState
     | undefined;
-  /** MaturingPackets nil on new chain, filled on restart. */
+  /** MaturingPackets nil on new chain, filled in on restart. */
   maturingPackets: MaturingVSCPacket[];
   /** InitialValset filled in on new chain and on restart. */
   initialValSet: ValidatorUpdate[];
-  /** HeightToValsetUpdateId nil on new chain, filled on restart. */
+  /** HeightToValsetUpdateId nil on new chain, filled in on restart. */
   heightToValsetUpdateId: HeightToValsetUpdateID[];
-  /** OutstandingDowntimes nil on new chain, filled on restart. */
+  /** OutstandingDowntimes nil on new chain, filled  in on restart. */
   outstandingDowntimeSlashing: OutstandingDowntime[];
-  /** PendingSlashRequests filled in on new chain, nil on restart. */
-  pendingSlashRequests: SlashRequests | undefined;
-}
-
-/**
- * MaturingVSCPacket defines the genesis information for the
- * unbonding VSC packet
- */
-export interface MaturingVSCPacket {
-  vscId: number;
-  maturityTime: number;
+  /** PendingConsumerPackets nil on new chain, filled in on restart. */
+  pendingConsumerPackets:
+    | ConsumerPacketDataList
+    | undefined;
+  /** LastTransmissionBlockHeight nil on new chain, filled in on restart. */
+  lastTransmissionBlockHeight: LastTransmissionBlockHeight | undefined;
 }
 
 /**
@@ -76,7 +72,8 @@ function createBaseGenesisState(): GenesisState {
     initialValSet: [],
     heightToValsetUpdateId: [],
     outstandingDowntimeSlashing: [],
-    pendingSlashRequests: undefined,
+    pendingConsumerPackets: undefined,
+    lastTransmissionBlockHeight: undefined,
   };
 }
 
@@ -112,8 +109,11 @@ export const GenesisState = {
     for (const v of message.outstandingDowntimeSlashing) {
       OutstandingDowntime.encode(v!, writer.uint32(82).fork()).ldelim();
     }
-    if (message.pendingSlashRequests !== undefined) {
-      SlashRequests.encode(message.pendingSlashRequests, writer.uint32(90).fork()).ldelim();
+    if (message.pendingConsumerPackets !== undefined) {
+      ConsumerPacketDataList.encode(message.pendingConsumerPackets, writer.uint32(90).fork()).ldelim();
+    }
+    if (message.lastTransmissionBlockHeight !== undefined) {
+      LastTransmissionBlockHeight.encode(message.lastTransmissionBlockHeight, writer.uint32(98).fork()).ldelim();
     }
     return writer;
   },
@@ -156,7 +156,10 @@ export const GenesisState = {
           message.outstandingDowntimeSlashing.push(OutstandingDowntime.decode(reader, reader.uint32()));
           break;
         case 11:
-          message.pendingSlashRequests = SlashRequests.decode(reader, reader.uint32());
+          message.pendingConsumerPackets = ConsumerPacketDataList.decode(reader, reader.uint32());
+          break;
+        case 12:
+          message.lastTransmissionBlockHeight = LastTransmissionBlockHeight.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -190,8 +193,11 @@ export const GenesisState = {
       outstandingDowntimeSlashing: Array.isArray(object?.outstandingDowntimeSlashing)
         ? object.outstandingDowntimeSlashing.map((e: any) => OutstandingDowntime.fromJSON(e))
         : [],
-      pendingSlashRequests: isSet(object.pendingSlashRequests)
-        ? SlashRequests.fromJSON(object.pendingSlashRequests)
+      pendingConsumerPackets: isSet(object.pendingConsumerPackets)
+        ? ConsumerPacketDataList.fromJSON(object.pendingConsumerPackets)
+        : undefined,
+      lastTransmissionBlockHeight: isSet(object.lastTransmissionBlockHeight)
+        ? LastTransmissionBlockHeight.fromJSON(object.lastTransmissionBlockHeight)
         : undefined,
     };
   },
@@ -232,9 +238,13 @@ export const GenesisState = {
     } else {
       obj.outstandingDowntimeSlashing = [];
     }
-    message.pendingSlashRequests !== undefined && (obj.pendingSlashRequests = message.pendingSlashRequests
-      ? SlashRequests.toJSON(message.pendingSlashRequests)
+    message.pendingConsumerPackets !== undefined && (obj.pendingConsumerPackets = message.pendingConsumerPackets
+      ? ConsumerPacketDataList.toJSON(message.pendingConsumerPackets)
       : undefined);
+    message.lastTransmissionBlockHeight !== undefined
+      && (obj.lastTransmissionBlockHeight = message.lastTransmissionBlockHeight
+        ? LastTransmissionBlockHeight.toJSON(message.lastTransmissionBlockHeight)
+        : undefined);
     return obj;
   },
 
@@ -259,67 +269,14 @@ export const GenesisState = {
       || [];
     message.outstandingDowntimeSlashing =
       object.outstandingDowntimeSlashing?.map((e) => OutstandingDowntime.fromPartial(e)) || [];
-    message.pendingSlashRequests = (object.pendingSlashRequests !== undefined && object.pendingSlashRequests !== null)
-      ? SlashRequests.fromPartial(object.pendingSlashRequests)
-      : undefined;
-    return message;
-  },
-};
-
-function createBaseMaturingVSCPacket(): MaturingVSCPacket {
-  return { vscId: 0, maturityTime: 0 };
-}
-
-export const MaturingVSCPacket = {
-  encode(message: MaturingVSCPacket, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.vscId !== 0) {
-      writer.uint32(8).uint64(message.vscId);
-    }
-    if (message.maturityTime !== 0) {
-      writer.uint32(16).uint64(message.maturityTime);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): MaturingVSCPacket {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMaturingVSCPacket();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.vscId = longToNumber(reader.uint64() as Long);
-          break;
-        case 2:
-          message.maturityTime = longToNumber(reader.uint64() as Long);
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  fromJSON(object: any): MaturingVSCPacket {
-    return {
-      vscId: isSet(object.vscId) ? Number(object.vscId) : 0,
-      maturityTime: isSet(object.maturityTime) ? Number(object.maturityTime) : 0,
-    };
-  },
-
-  toJSON(message: MaturingVSCPacket): unknown {
-    const obj: any = {};
-    message.vscId !== undefined && (obj.vscId = Math.round(message.vscId));
-    message.maturityTime !== undefined && (obj.maturityTime = Math.round(message.maturityTime));
-    return obj;
-  },
-
-  fromPartial<I extends Exact<DeepPartial<MaturingVSCPacket>, I>>(object: I): MaturingVSCPacket {
-    const message = createBaseMaturingVSCPacket();
-    message.vscId = object.vscId ?? 0;
-    message.maturityTime = object.maturityTime ?? 0;
+    message.pendingConsumerPackets =
+      (object.pendingConsumerPackets !== undefined && object.pendingConsumerPackets !== null)
+        ? ConsumerPacketDataList.fromPartial(object.pendingConsumerPackets)
+        : undefined;
+    message.lastTransmissionBlockHeight =
+      (object.lastTransmissionBlockHeight !== undefined && object.lastTransmissionBlockHeight !== null)
+        ? LastTransmissionBlockHeight.fromPartial(object.lastTransmissionBlockHeight)
+        : undefined;
     return message;
   },
 };

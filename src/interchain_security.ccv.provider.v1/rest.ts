@@ -19,10 +19,10 @@ export interface AbciValidatorUpdate {
 export interface Ccvconsumerv1GenesisState {
   params?: Ccvconsumerv1Params;
 
-  /** empty for a completely new chain */
+  /** empty for a new chain, filled in on restart. */
   provider_client_id?: string;
 
-  /** empty for a completely new chain */
+  /** empty for a new chain, filled in on restart. */
   provider_channel_id?: string;
 
   /** true for new chain GenesisState, false for chain restart. */
@@ -34,20 +34,23 @@ export interface Ccvconsumerv1GenesisState {
   /** ProviderConsensusState filled in on new chain, nil on restart. */
   provider_consensus_state?: V1ConsensusState;
 
-  /** MaturingPackets nil on new chain, filled on restart. */
+  /** MaturingPackets nil on new chain, filled in on restart. */
   maturing_packets?: V1MaturingVSCPacket[];
 
   /** InitialValset filled in on new chain and on restart. */
   initial_val_set?: AbciValidatorUpdate[];
 
-  /** HeightToValsetUpdateId nil on new chain, filled on restart. */
+  /** HeightToValsetUpdateId nil on new chain, filled in on restart. */
   height_to_valset_update_id?: V1HeightToValsetUpdateID[];
 
-  /** OutstandingDowntimes nil on new chain, filled on restart. */
+  /** OutstandingDowntimes nil on new chain, filled  in on restart. */
   outstanding_downtime_slashing?: V1OutstandingDowntime[];
 
-  /** PendingSlashRequests filled in on new chain, nil on restart. */
-  pending_slash_requests?: V1SlashRequests;
+  /** PendingConsumerPackets nil on new chain, filled in on restart. */
+  pending_consumer_packets?: V1ConsumerPacketDataList;
+
+  /** LastTransmissionBlockHeight nil on new chain, filled in on restart. */
+  last_transmission_block_height?: V1LastTransmissionBlockHeight;
 }
 
 export interface Ccvconsumerv1Params {
@@ -544,13 +547,15 @@ export interface V1ConsumerAdditionProposal {
   initial_height?: V1Height;
 
   /**
-   * genesis hash with no staking information included.
+   * The hash of the consumer chain genesis state without the consumer CCV module genesis params.
+   * It is used for off-chain confirmation of genesis.json validity by validators and other parties.
    * @format byte
    */
   genesis_hash?: string;
 
   /**
-   * binary hash is the hash of the binary that should be used by validators on chain initialization.
+   * The hash of the consumer chain binary that should be run by validators on chain initialization.
+   * It is used for off-chain confirmation of binary validity by validators and other parties.
    * @format byte
    */
   binary_hash?: string;
@@ -563,11 +568,38 @@ export interface V1ConsumerAdditionProposal {
   spawn_time?: string;
 
   /**
-   * Indicates whether the outstanding unbonding operations should be released
-   * in case of a channel time-outs. When set to true, a governance proposal
-   * on the provider chain would be necessary to release the locked funds.
+   * Unbonding period for the consumer,
+   * which should be smaller than that of the provider in general.
    */
-  lock_unbonding_on_timeout?: boolean;
+  unbonding_period?: string;
+
+  /** Sent CCV related IBC packets will timeout after this duration */
+  ccv_timeout_period?: string;
+
+  /** Sent transfer related IBC packets will timeout after this duration */
+  transfer_timeout_period?: string;
+
+  /**
+   * The fraction of tokens allocated to the consumer redistribution address
+   * during distribution events. The fraction is a string representing a
+   * decimal number. For example "0.75" would represent 75%.
+   */
+  consumer_redistribution_fraction?: string;
+
+  /**
+   * BlocksPerDistributionTransmission is the number of blocks between ibc-token-transfers from the consumer chain to the provider chain.
+   * On sending transmission event, `consumer_redistribution_fraction` of the accumulated tokens are sent to the consumer redistribution address.
+   * @format int64
+   */
+  blocks_per_distribution_transmission?: string;
+
+  /**
+   * The number of historical info entries to persist in store.
+   * This param is a part of the cosmos sdk staking module. In the case of
+   * a ccv enabled consumer chain, the ccv module acts as the staking module.
+   * @format int64
+   */
+  historical_entries?: string;
 }
 
 /**
@@ -578,10 +610,54 @@ export interface V1ConsumerAdditionProposals {
   pending?: V1ConsumerAdditionProposal[];
 }
 
+export interface V1ConsumerPacketData {
+  /**
+   * ConsumerPacketType indicates interchain security specific packet types.
+   *
+   *  - CONSUMER_PACKET_TYPE_UNSPECIFIED: UNSPECIFIED packet type
+   *  - CONSUMER_PACKET_TYPE_SLASH: Slash packet
+   *  - CONSUMER_PACKET_TYPE_VSCM: VSCMatured packet
+   */
+  type?: V1ConsumerPacketDataType;
+
+  /**
+   * This packet is sent from the consumer chain to the provider chain
+   * to request the slashing of a validator as a result of an infraction
+   * committed on the consumer chain.
+   */
+  slashPacketData?: V1SlashPacketData;
+
+  /**
+   * This packet is sent from the consumer chain to the provider chain
+   * to notify that a VSC packet reached maturity on the consumer chain.
+   */
+  vscMaturedPacketData?: V1VSCMaturedPacketData;
+}
+
+/**
+ * ConsumerPacketDataList is a list of consumer packet data packets.
+ */
+export interface V1ConsumerPacketDataList {
+  list?: V1ConsumerPacketData[];
+}
+
+/**
+* ConsumerPacketType indicates interchain security specific packet types.
+
+ - CONSUMER_PACKET_TYPE_UNSPECIFIED: UNSPECIFIED packet type
+ - CONSUMER_PACKET_TYPE_SLASH: Slash packet
+ - CONSUMER_PACKET_TYPE_VSCM: VSCMatured packet
+*/
+export enum V1ConsumerPacketDataType {
+  CONSUMER_PACKET_TYPE_UNSPECIFIED = "CONSUMER_PACKET_TYPE_UNSPECIFIED",
+  CONSUMER_PACKET_TYPE_SLASH = "CONSUMER_PACKET_TYPE_SLASH",
+  CONSUMER_PACKET_TYPE_VSCM = "CONSUMER_PACKET_TYPE_VSCM",
+}
+
 /**
 * ConsumerRemovalProposal is a governance proposal on the provider chain to remove (and stop) a consumer chain.
 If it passes, all the consumer chain's state is removed from the provider chain. The outstanding unbonding
-operation funds are released if the LockUnbondingOnTimeout parameter is set to false for the consumer chain ID.
+operation funds are released.
 */
 export interface V1ConsumerRemovalProposal {
   /** the title of the proposal */
@@ -621,6 +697,38 @@ export interface V1Fraction {
 }
 
 /**
+* A persisted queue entry indicating that a slash packet data instance needs to be handled.
+This type belongs in the "global" queue, to coordinate slash packet handling times between consumers.
+*/
+export interface V1GlobalSlashEntry {
+  /**
+   * Block time that slash packet was received by provider chain.
+   * This field is used for store key iteration ordering.
+   * @format date-time
+   */
+  recv_time?: string;
+
+  /** The consumer that sent a slash packet. */
+  consumer_chain_id?: string;
+
+  /**
+   * The IBC sequence number of the recv packet.
+   * This field is used in the store key to ensure uniqueness.
+   * @format uint64
+   */
+  ibc_seq_num?: string;
+
+  /**
+   * The provider's consensus address of the validator being slashed.
+   * This field is used to obtain validator power in HandleThrottleQueues.
+   *
+   * This field is not used in the store key, but is persisted in value bytes, see QueueGlobalSlashEntry.
+   * @format byte
+   */
+  provider_val_cons_addr?: string;
+}
+
+/**
 * Normally the RevisionHeight is incremented at each height while keeping
 RevisionNumber the same. However some consensus algorithms may choose to
 reset the height in certain conditions e.g. hard forks, state-machine
@@ -650,11 +758,16 @@ export interface V1HeightToValsetUpdateID {
   valset_update_id?: string;
 }
 
+export interface V1LastTransmissionBlockHeight {
+  /** @format int64 */
+  height?: string;
+}
+
 export interface V1MaturingVSCPacket {
   /** @format uint64 */
   vscId?: string;
 
-  /** @format uint64 */
+  /** @format date-time */
   maturity_time?: string;
 }
 
@@ -666,6 +779,8 @@ export interface V1MerkleRoot {
   /** @format byte */
   hash?: string;
 }
+
+export type V1MsgAssignConsumerKeyResponse = object;
 
 /**
 * OutstandingDowntime defines the genesis information for each validator
@@ -693,6 +808,48 @@ export interface V1QueryConsumerGenesisResponse {
   genesis_state?: Ccvconsumerv1GenesisState;
 }
 
+export interface V1QueryThrottleStateResponse {
+  /**
+   * current slash_meter state
+   * @format int64
+   */
+  slash_meter?: string;
+
+  /**
+   * allowance of voting power units (int) that the slash meter is given per replenish period
+   * this also serves as the max value for the meter.
+   * @format int64
+   */
+  slash_meter_allowance?: string;
+
+  /**
+   * last time the slash meter was full
+   * @format date-time
+   */
+  last_full_time?: string;
+
+  /** data relevant to currently throttled slash packets */
+  packets?: V1ThrottledSlashPacket[];
+}
+
+export interface V1QueryThrottledConsumerPacketDataResponse {
+  chain_id?: string;
+
+  /** @format uint64 */
+  size?: string;
+  packetDataInstances?: V1ThrottledPacketDataWrapper[];
+}
+
+export interface V1QueryValidatorConsumerAddrResponse {
+  /** The address of the validator on the consumer chain */
+  consumer_address?: string;
+}
+
+export interface V1QueryValidatorProviderAddrResponse {
+  /** The address of the validator on the provider chain */
+  provider_address?: string;
+}
+
 /**
 * This packet is sent from the consumer chain to the provider chain
 to request the slashing of a validator as a result of an infraction
@@ -718,26 +875,49 @@ export interface V1SlashPacketData {
   infraction?: V1Beta1InfractionType;
 }
 
-export interface V1SlashRequest {
+export interface V1ThrottledPacketDataWrapper {
   /**
    * This packet is sent from the consumer chain to the provider chain
    * to request the slashing of a validator as a result of an infraction
    * committed on the consumer chain.
    */
-  packet?: V1SlashPacketData;
+  slash_packet?: V1SlashPacketData;
 
   /**
-   * InfractionType indicates the infraction type a validator commited.
-   *
-   *  - INFRACTION_TYPE_UNSPECIFIED: UNSPECIFIED defines an empty infraction type.
-   *  - INFRACTION_TYPE_DOUBLE_SIGN: DOUBLE_SIGN defines a validator that double-signs a block.
-   *  - INFRACTION_TYPE_DOWNTIME: DOWNTIME defines a validator that missed signing too many blocks.
+   * This packet is sent from the consumer chain to the provider chain
+   * to notify that a VSC packet reached maturity on the consumer chain.
    */
-  infraction?: V1Beta1InfractionType;
+  vsc_matured_packet?: V1VSCMaturedPacketData;
 }
 
-export interface V1SlashRequests {
-  requests?: V1SlashRequest[];
+/**
+ * A query wrapper type for the global entry and data relevant to a throttled slash packet.
+ */
+export interface V1ThrottledSlashPacket {
+  /**
+   * A persisted queue entry indicating that a slash packet data instance needs to be handled.
+   * This type belongs in the "global" queue, to coordinate slash packet handling times between consumers.
+   */
+  global_entry?: V1GlobalSlashEntry;
+
+  /**
+   * This packet is sent from the consumer chain to the provider chain
+   * to request the slashing of a validator as a result of an infraction
+   * committed on the consumer chain.
+   */
+  data?: V1SlashPacketData;
+}
+
+/**
+* This packet is sent from the consumer chain to the provider chain
+to notify that a VSC packet reached maturity on the consumer chain.
+*/
+export interface V1VSCMaturedPacketData {
+  /**
+   * the id of the VSC packet that reached maturity
+   * @format uint64
+   */
+  valset_update_id?: string;
 }
 
 /**
@@ -940,6 +1120,82 @@ whose proposal has been accepted
     this.request<V1QueryConsumerGenesisResponse, RpcStatus>({
       path: `/interchain_security/ccv/provider/consumer_genesis/${chainId}`,
       method: "GET",
+      format: "json",
+      ...params,
+    });
+
+  /**
+ * No description
+ * 
+ * @tags Query
+ * @name QueryQueryThrottledConsumerPacketData
+ * @summary QueryThrottledConsumerPacketData returns a list of pending packet data instances
+(slash packet and vsc matured) for a single consumer chain
+ * @request GET:/interchain_security/ccv/provider/pending_consumer_packets
+ */
+  queryQueryThrottledConsumerPacketData = (query?: { chain_id?: string }, params: RequestParams = {}) =>
+    this.request<V1QueryThrottledConsumerPacketDataResponse, RpcStatus>({
+      path: `/interchain_security/ccv/provider/pending_consumer_packets`,
+      method: "GET",
+      query: query,
+      format: "json",
+      ...params,
+    });
+
+  /**
+   * No description
+   *
+   * @tags Query
+   * @name QueryQueryThrottleState
+   * @summary QueryThrottleState returns the main on-chain state relevant to currently throttled slash packets
+   * @request GET:/interchain_security/ccv/provider/throttle_state
+   */
+  queryQueryThrottleState = (params: RequestParams = {}) =>
+    this.request<V1QueryThrottleStateResponse, RpcStatus>({
+      path: `/interchain_security/ccv/provider/throttle_state`,
+      method: "GET",
+      format: "json",
+      ...params,
+    });
+
+  /**
+ * No description
+ * 
+ * @tags Query
+ * @name QueryQueryValidatorConsumerAddr
+ * @summary QueryValidatorConsumerAddr queries the address
+assigned by a validator for a consumer chain.
+ * @request GET:/interchain_security/ccv/provider/validator_consumer_addr
+ */
+  queryQueryValidatorConsumerAddr = (
+    query?: { chain_id?: string; provider_address?: string },
+    params: RequestParams = {},
+  ) =>
+    this.request<V1QueryValidatorConsumerAddrResponse, RpcStatus>({
+      path: `/interchain_security/ccv/provider/validator_consumer_addr`,
+      method: "GET",
+      query: query,
+      format: "json",
+      ...params,
+    });
+
+  /**
+ * No description
+ * 
+ * @tags Query
+ * @name QueryQueryValidatorProviderAddr
+ * @summary QueryProviderAddr returns the provider chain validator
+given a consumer chain validator address
+ * @request GET:/interchain_security/ccv/provider/validator_provider_addr
+ */
+  queryQueryValidatorProviderAddr = (
+    query?: { chain_id?: string; consumer_address?: string },
+    params: RequestParams = {},
+  ) =>
+    this.request<V1QueryValidatorProviderAddrResponse, RpcStatus>({
+      path: `/interchain_security/ccv/provider/validator_provider_addr`,
+      method: "GET",
+      query: query,
       format: "json",
       ...params,
     });

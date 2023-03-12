@@ -7,8 +7,8 @@ import { msgTypes } from './registry';
 import { IgniteClient } from "../client"
 import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
-import { MsgRegisterInterchainQuery } from "./types/interchainqueries/tx";
 import { MsgSubmitQueryResult } from "./types/interchainqueries/tx";
+import { MsgRegisterInterchainQuery } from "./types/interchainqueries/tx";
 import { MsgRemoveInterchainQueryRequest } from "./types/interchainqueries/tx";
 
 import { RegisteredQuery as typeRegisteredQuery} from "./types"
@@ -20,16 +20,16 @@ import { StorageValue as typeStorageValue} from "./types"
 import { Block as typeBlock} from "./types"
 import { TxValue as typeTxValue} from "./types"
 
-export { MsgRegisterInterchainQuery, MsgSubmitQueryResult, MsgRemoveInterchainQueryRequest };
+export { MsgSubmitQueryResult, MsgRegisterInterchainQuery, MsgRemoveInterchainQueryRequest };
 
-type sendMsgRegisterInterchainQueryParams = {
-  value: MsgRegisterInterchainQuery,
+type sendMsgSubmitQueryResultParams = {
+  value: MsgSubmitQueryResult,
   fee?: StdFee,
   memo?: string
 };
 
-type sendMsgSubmitQueryResultParams = {
-  value: MsgSubmitQueryResult,
+type sendMsgRegisterInterchainQueryParams = {
+  value: MsgRegisterInterchainQuery,
   fee?: StdFee,
   memo?: string
 };
@@ -41,12 +41,12 @@ type sendMsgRemoveInterchainQueryRequestParams = {
 };
 
 
-type msgRegisterInterchainQueryParams = {
-  value: MsgRegisterInterchainQuery,
-};
-
 type msgSubmitQueryResultParams = {
   value: MsgSubmitQueryResult,
+};
+
+type msgRegisterInterchainQueryParams = {
+  value: MsgRegisterInterchainQuery,
 };
 
 type msgRemoveInterchainQueryRequestParams = {
@@ -83,20 +83,6 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 
   return {
 		
-		async sendMsgRegisterInterchainQuery({ value, fee, memo }: sendMsgRegisterInterchainQueryParams): Promise<DeliverTxResponse> {
-			if (!signer) {
-					throw new Error('TxClient:sendMsgRegisterInterchainQuery: Unable to sign Tx. Signer is not present.')
-			}
-			try {			
-				const { address } = (await signer.getAccounts())[0]; 
-				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
-				let msg = this.msgRegisterInterchainQuery({ value: MsgRegisterInterchainQuery.fromPartial(value) })
-				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
-			} catch (e: any) {
-				throw new Error('TxClient:sendMsgRegisterInterchainQuery: Could not broadcast Tx: '+ e.message)
-			}
-		},
-		
 		async sendMsgSubmitQueryResult({ value, fee, memo }: sendMsgSubmitQueryResultParams): Promise<DeliverTxResponse> {
 			if (!signer) {
 					throw new Error('TxClient:sendMsgSubmitQueryResult: Unable to sign Tx. Signer is not present.')
@@ -108,6 +94,20 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
 			} catch (e: any) {
 				throw new Error('TxClient:sendMsgSubmitQueryResult: Could not broadcast Tx: '+ e.message)
+			}
+		},
+		
+		async sendMsgRegisterInterchainQuery({ value, fee, memo }: sendMsgRegisterInterchainQueryParams): Promise<DeliverTxResponse> {
+			if (!signer) {
+					throw new Error('TxClient:sendMsgRegisterInterchainQuery: Unable to sign Tx. Signer is not present.')
+			}
+			try {			
+				const { address } = (await signer.getAccounts())[0]; 
+				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
+				let msg = this.msgRegisterInterchainQuery({ value: MsgRegisterInterchainQuery.fromPartial(value) })
+				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
+			} catch (e: any) {
+				throw new Error('TxClient:sendMsgRegisterInterchainQuery: Could not broadcast Tx: '+ e.message)
 			}
 		},
 		
@@ -126,19 +126,19 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 		},
 		
 		
-		msgRegisterInterchainQuery({ value }: msgRegisterInterchainQueryParams): EncodeObject {
-			try {
-				return { typeUrl: "/neutron.interchainqueries.MsgRegisterInterchainQuery", value: MsgRegisterInterchainQuery.fromPartial( value ) }  
-			} catch (e: any) {
-				throw new Error('TxClient:MsgRegisterInterchainQuery: Could not create message: ' + e.message)
-			}
-		},
-		
 		msgSubmitQueryResult({ value }: msgSubmitQueryResultParams): EncodeObject {
 			try {
 				return { typeUrl: "/neutron.interchainqueries.MsgSubmitQueryResult", value: MsgSubmitQueryResult.fromPartial( value ) }  
 			} catch (e: any) {
 				throw new Error('TxClient:MsgSubmitQueryResult: Could not create message: ' + e.message)
+			}
+		},
+		
+		msgRegisterInterchainQuery({ value }: msgRegisterInterchainQueryParams): EncodeObject {
+			try {
+				return { typeUrl: "/neutron.interchainqueries.MsgRegisterInterchainQuery", value: MsgRegisterInterchainQuery.fromPartial( value ) }  
+			} catch (e: any) {
+				throw new Error('TxClient:MsgRegisterInterchainQuery: Could not create message: ' + e.message)
 			}
 		},
 		

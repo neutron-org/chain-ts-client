@@ -11,8 +11,6 @@ import { Api } from "./rest";
 import { Params as typeParams} from "./types"
 import { LastTransmissionBlockHeight as typeLastTransmissionBlockHeight} from "./types"
 import { CrossChainValidator as typeCrossChainValidator} from "./types"
-import { SlashRequest as typeSlashRequest} from "./types"
-import { SlashRequests as typeSlashRequests} from "./types"
 import { MaturingVSCPacket as typeMaturingVSCPacket} from "./types"
 import { HeightToValsetUpdateID as typeHeightToValsetUpdateID} from "./types"
 import { OutstandingDowntime as typeOutstandingDowntime} from "./types"
@@ -77,8 +75,6 @@ class SDKModule {
 						Params: getStructure(typeParams.fromPartial({})),
 						LastTransmissionBlockHeight: getStructure(typeLastTransmissionBlockHeight.fromPartial({})),
 						CrossChainValidator: getStructure(typeCrossChainValidator.fromPartial({})),
-						SlashRequest: getStructure(typeSlashRequest.fromPartial({})),
-						SlashRequests: getStructure(typeSlashRequests.fromPartial({})),
 						MaturingVSCPacket: getStructure(typeMaturingVSCPacket.fromPartial({})),
 						HeightToValsetUpdateID: getStructure(typeHeightToValsetUpdateID.fromPartial({})),
 						OutstandingDowntime: getStructure(typeOutstandingDowntime.fromPartial({})),

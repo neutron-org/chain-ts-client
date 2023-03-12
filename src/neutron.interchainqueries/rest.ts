@@ -51,6 +51,8 @@ export interface AbciResponseDeliverTx {
 
   /** @format int64 */
   gas_used?: string;
+
+  /** nondeterministic */
   events?: AbciEvent[];
   codespace?: string;
 }

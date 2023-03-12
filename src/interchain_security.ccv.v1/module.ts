@@ -9,11 +9,12 @@ import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
 
 import { ValidatorSetChangePacketData as typeValidatorSetChangePacketData} from "./types"
-import { UnbondingOp as typeUnbondingOp} from "./types"
+import { ValidatorSetChangePackets as typeValidatorSetChangePackets} from "./types"
 import { VSCMaturedPacketData as typeVSCMaturedPacketData} from "./types"
 import { SlashPacketData as typeSlashPacketData} from "./types"
-import { UnbondingOpsIndex as typeUnbondingOpsIndex} from "./types"
 import { MaturedUnbondingOps as typeMaturedUnbondingOps} from "./types"
+import { ConsumerPacketData as typeConsumerPacketData} from "./types"
+import { ConsumerPacketDataList as typeConsumerPacketDataList} from "./types"
 
 export {  };
 
@@ -72,11 +73,12 @@ class SDKModule {
 		this.updateTX(client);
 		this.structure =  {
 						ValidatorSetChangePacketData: getStructure(typeValidatorSetChangePacketData.fromPartial({})),
-						UnbondingOp: getStructure(typeUnbondingOp.fromPartial({})),
+						ValidatorSetChangePackets: getStructure(typeValidatorSetChangePackets.fromPartial({})),
 						VSCMaturedPacketData: getStructure(typeVSCMaturedPacketData.fromPartial({})),
 						SlashPacketData: getStructure(typeSlashPacketData.fromPartial({})),
-						UnbondingOpsIndex: getStructure(typeUnbondingOpsIndex.fromPartial({})),
 						MaturedUnbondingOps: getStructure(typeMaturedUnbondingOps.fromPartial({})),
+						ConsumerPacketData: getStructure(typeConsumerPacketData.fromPartial({})),
+						ConsumerPacketDataList: getStructure(typeConsumerPacketDataList.fromPartial({})),
 						
 		};
 		client.on('signer-changed',(signer) => {			

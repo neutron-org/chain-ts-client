@@ -1,3 +1,12 @@
+import { ContractExecutionAuthorization } from "./types/cosmwasm/wasm/v1/authz"
+import { ContractMigrationAuthorization } from "./types/cosmwasm/wasm/v1/authz"
+import { ContractGrant } from "./types/cosmwasm/wasm/v1/authz"
+import { MaxCallsLimit } from "./types/cosmwasm/wasm/v1/authz"
+import { MaxFundsLimit } from "./types/cosmwasm/wasm/v1/authz"
+import { CombinedLimit } from "./types/cosmwasm/wasm/v1/authz"
+import { AllowAllMessagesFilter } from "./types/cosmwasm/wasm/v1/authz"
+import { AcceptedMessageKeysFilter } from "./types/cosmwasm/wasm/v1/authz"
+import { AcceptedMessagesFilter } from "./types/cosmwasm/wasm/v1/authz"
 import { GenesisState_GenMsgs } from "./types/cosmwasm/wasm/v1/genesis"
 import { Code } from "./types/cosmwasm/wasm/v1/genesis"
 import { Contract } from "./types/cosmwasm/wasm/v1/genesis"
@@ -13,6 +22,7 @@ import { PinCodesProposal } from "./types/cosmwasm/wasm/v1/proposal"
 import { UnpinCodesProposal } from "./types/cosmwasm/wasm/v1/proposal"
 import { AccessConfigUpdate } from "./types/cosmwasm/wasm/v1/proposal"
 import { UpdateInstantiateConfigProposal } from "./types/cosmwasm/wasm/v1/proposal"
+import { StoreAndInstantiateContractProposal } from "./types/cosmwasm/wasm/v1/proposal"
 import { CodeInfoResponse } from "./types/cosmwasm/wasm/v1/query"
 import { AccessTypeParam } from "./types/cosmwasm/wasm/v1/types"
 import { AccessConfig } from "./types/cosmwasm/wasm/v1/types"
@@ -25,6 +35,15 @@ import { Model } from "./types/cosmwasm/wasm/v1/types"
 
 
 export {     
+    ContractExecutionAuthorization,
+    ContractMigrationAuthorization,
+    ContractGrant,
+    MaxCallsLimit,
+    MaxFundsLimit,
+    CombinedLimit,
+    AllowAllMessagesFilter,
+    AcceptedMessageKeysFilter,
+    AcceptedMessagesFilter,
     GenesisState_GenMsgs,
     Code,
     Contract,
@@ -40,6 +59,7 @@ export {
     UnpinCodesProposal,
     AccessConfigUpdate,
     UpdateInstantiateConfigProposal,
+    StoreAndInstantiateContractProposal,
     CodeInfoResponse,
     AccessTypeParam,
     AccessConfig,

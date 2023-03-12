@@ -13,6 +13,7 @@ import { IdentifiedChannel as typeIdentifiedChannel} from "./types"
 import { Counterparty as typeCounterparty} from "./types"
 import { Packet as typePacket} from "./types"
 import { PacketState as typePacketState} from "./types"
+import { PacketId as typePacketId} from "./types"
 import { Acknowledgement as typeAcknowledgement} from "./types"
 import { PacketSequence as typePacketSequence} from "./types"
 
@@ -77,6 +78,7 @@ class SDKModule {
 						Counterparty: getStructure(typeCounterparty.fromPartial({})),
 						Packet: getStructure(typePacket.fromPartial({})),
 						PacketState: getStructure(typePacketState.fromPartial({})),
+						PacketId: getStructure(typePacketId.fromPartial({})),
 						Acknowledgement: getStructure(typeAcknowledgement.fromPartial({})),
 						PacketSequence: getStructure(typePacketSequence.fromPartial({})),
 						

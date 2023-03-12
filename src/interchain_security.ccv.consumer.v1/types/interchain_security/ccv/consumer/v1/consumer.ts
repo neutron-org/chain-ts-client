@@ -1,14 +1,9 @@
 /* eslint-disable */
 import Long from "long";
 import _m0 from "protobufjs/minimal";
-import {
-  InfractionType,
-  infractionTypeFromJSON,
-  infractionTypeToJSON,
-} from "../../../../cosmos/staking/v1beta1/staking";
 import { Any } from "../../../../google/protobuf/any";
 import { Duration } from "../../../../google/protobuf/duration";
-import { SlashPacketData } from "../../v1/ccv";
+import { Timestamp } from "../../../../google/protobuf/timestamp";
 
 export const protobufPackage = "interchain_security.ccv.consumer.v1";
 
@@ -78,15 +73,10 @@ export interface CrossChainValidator {
   pubkey: Any | undefined;
 }
 
-/** SlashRequest defines a slashing request for CCV consumer module */
-export interface SlashRequest {
-  packet: SlashPacketData | undefined;
-  infraction: InfractionType;
-}
-
-/** SlashRequests is a list of slash requests for CCV consumer module */
-export interface SlashRequests {
-  requests: SlashRequest[];
+/** MaturingVSCPacket contains the maturing time of a received VSCPacket */
+export interface MaturingVSCPacket {
+  vscId: number;
+  maturityTime: Date | undefined;
 }
 
 function createBaseParams(): Params {
@@ -359,33 +349,33 @@ export const CrossChainValidator = {
   },
 };
 
-function createBaseSlashRequest(): SlashRequest {
-  return { packet: undefined, infraction: 0 };
+function createBaseMaturingVSCPacket(): MaturingVSCPacket {
+  return { vscId: 0, maturityTime: undefined };
 }
 
-export const SlashRequest = {
-  encode(message: SlashRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.packet !== undefined) {
-      SlashPacketData.encode(message.packet, writer.uint32(10).fork()).ldelim();
+export const MaturingVSCPacket = {
+  encode(message: MaturingVSCPacket, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.vscId !== 0) {
+      writer.uint32(8).uint64(message.vscId);
     }
-    if (message.infraction !== 0) {
-      writer.uint32(16).int32(message.infraction);
+    if (message.maturityTime !== undefined) {
+      Timestamp.encode(toTimestamp(message.maturityTime), writer.uint32(18).fork()).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): SlashRequest {
+  decode(input: _m0.Reader | Uint8Array, length?: number): MaturingVSCPacket {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSlashRequest();
+    const message = createBaseMaturingVSCPacket();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.packet = SlashPacketData.decode(reader, reader.uint32());
+          message.vscId = longToNumber(reader.uint64() as Long);
           break;
         case 2:
-          message.infraction = reader.int32() as any;
+          message.maturityTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           break;
         default:
           reader.skipType(tag & 7);
@@ -395,79 +385,24 @@ export const SlashRequest = {
     return message;
   },
 
-  fromJSON(object: any): SlashRequest {
+  fromJSON(object: any): MaturingVSCPacket {
     return {
-      packet: isSet(object.packet) ? SlashPacketData.fromJSON(object.packet) : undefined,
-      infraction: isSet(object.infraction) ? infractionTypeFromJSON(object.infraction) : 0,
+      vscId: isSet(object.vscId) ? Number(object.vscId) : 0,
+      maturityTime: isSet(object.maturityTime) ? fromJsonTimestamp(object.maturityTime) : undefined,
     };
   },
 
-  toJSON(message: SlashRequest): unknown {
+  toJSON(message: MaturingVSCPacket): unknown {
     const obj: any = {};
-    message.packet !== undefined && (obj.packet = message.packet ? SlashPacketData.toJSON(message.packet) : undefined);
-    message.infraction !== undefined && (obj.infraction = infractionTypeToJSON(message.infraction));
+    message.vscId !== undefined && (obj.vscId = Math.round(message.vscId));
+    message.maturityTime !== undefined && (obj.maturityTime = message.maturityTime.toISOString());
     return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<SlashRequest>, I>>(object: I): SlashRequest {
-    const message = createBaseSlashRequest();
-    message.packet = (object.packet !== undefined && object.packet !== null)
-      ? SlashPacketData.fromPartial(object.packet)
-      : undefined;
-    message.infraction = object.infraction ?? 0;
-    return message;
-  },
-};
-
-function createBaseSlashRequests(): SlashRequests {
-  return { requests: [] };
-}
-
-export const SlashRequests = {
-  encode(message: SlashRequests, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    for (const v of message.requests) {
-      SlashRequest.encode(v!, writer.uint32(10).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): SlashRequests {
-    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSlashRequests();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          message.requests.push(SlashRequest.decode(reader, reader.uint32()));
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
-      }
-    }
-    return message;
-  },
-
-  fromJSON(object: any): SlashRequests {
-    return {
-      requests: Array.isArray(object?.requests) ? object.requests.map((e: any) => SlashRequest.fromJSON(e)) : [],
-    };
-  },
-
-  toJSON(message: SlashRequests): unknown {
-    const obj: any = {};
-    if (message.requests) {
-      obj.requests = message.requests.map((e) => e ? SlashRequest.toJSON(e) : undefined);
-    } else {
-      obj.requests = [];
-    }
-    return obj;
-  },
-
-  fromPartial<I extends Exact<DeepPartial<SlashRequests>, I>>(object: I): SlashRequests {
-    const message = createBaseSlashRequests();
-    message.requests = object.requests?.map((e) => SlashRequest.fromPartial(e)) || [];
+  fromPartial<I extends Exact<DeepPartial<MaturingVSCPacket>, I>>(object: I): MaturingVSCPacket {
+    const message = createBaseMaturingVSCPacket();
+    message.vscId = object.vscId ?? 0;
+    message.maturityTime = object.maturityTime ?? undefined;
     return message;
   },
 };
@@ -526,6 +461,28 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function toTimestamp(date: Date): Timestamp {
+  const seconds = date.getTime() / 1_000;
+  const nanos = (date.getTime() % 1_000) * 1_000_000;
+  return { seconds, nanos };
+}
+
+function fromTimestamp(t: Timestamp): Date {
+  let millis = t.seconds * 1_000;
+  millis += t.nanos / 1_000_000;
+  return new Date(millis);
+}
+
+function fromJsonTimestamp(o: any): Date {
+  if (o instanceof Date) {
+    return o;
+  } else if (typeof o === "string") {
+    return new Date(o);
+  } else {
+    return fromTimestamp(Timestamp.fromJSON(o));
+  }
+}
 
 function longToNumber(long: Long): number {
   if (long.gt(Number.MAX_SAFE_INTEGER)) {

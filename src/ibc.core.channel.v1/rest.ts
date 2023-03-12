@@ -326,9 +326,9 @@ export interface V1IdentifiedClientState {
  */
 export interface V1MsgAcknowledgementResponse {
   /**
-   * - RESPONSE_RESULT_UNSPECIFIED: Default zero value enumeration
-   *  - RESPONSE_RESULT_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
-   *  - RESPONSE_RESULT_SUCCESS: The message was executed successfully
+   * - RESPONSE_RESULT_TYPE_UNSPECIFIED: Default zero value enumeration
+   *  - RESPONSE_RESULT_TYPE_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
+   *  - RESPONSE_RESULT_TYPE_SUCCESS: The message was executed successfully
    */
   result?: V1ResponseResultType;
 }
@@ -360,21 +360,24 @@ export type V1MsgChannelOpenConfirmResponse = object;
  */
 export interface V1MsgChannelOpenInitResponse {
   channel_id?: string;
+  version?: string;
 }
 
 /**
  * MsgChannelOpenTryResponse defines the Msg/ChannelOpenTry response type.
  */
-export type V1MsgChannelOpenTryResponse = object;
+export interface V1MsgChannelOpenTryResponse {
+  version?: string;
+}
 
 /**
  * MsgRecvPacketResponse defines the Msg/RecvPacket response type.
  */
 export interface V1MsgRecvPacketResponse {
   /**
-   * - RESPONSE_RESULT_UNSPECIFIED: Default zero value enumeration
-   *  - RESPONSE_RESULT_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
-   *  - RESPONSE_RESULT_SUCCESS: The message was executed successfully
+   * - RESPONSE_RESULT_TYPE_UNSPECIFIED: Default zero value enumeration
+   *  - RESPONSE_RESULT_TYPE_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
+   *  - RESPONSE_RESULT_TYPE_SUCCESS: The message was executed successfully
    */
   result?: V1ResponseResultType;
 }
@@ -384,9 +387,9 @@ export interface V1MsgRecvPacketResponse {
  */
 export interface V1MsgTimeoutOnCloseResponse {
   /**
-   * - RESPONSE_RESULT_UNSPECIFIED: Default zero value enumeration
-   *  - RESPONSE_RESULT_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
-   *  - RESPONSE_RESULT_SUCCESS: The message was executed successfully
+   * - RESPONSE_RESULT_TYPE_UNSPECIFIED: Default zero value enumeration
+   *  - RESPONSE_RESULT_TYPE_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
+   *  - RESPONSE_RESULT_TYPE_SUCCESS: The message was executed successfully
    */
   result?: V1ResponseResultType;
 }
@@ -396,9 +399,9 @@ export interface V1MsgTimeoutOnCloseResponse {
  */
 export interface V1MsgTimeoutResponse {
   /**
-   * - RESPONSE_RESULT_UNSPECIFIED: Default zero value enumeration
-   *  - RESPONSE_RESULT_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
-   *  - RESPONSE_RESULT_SUCCESS: The message was executed successfully
+   * - RESPONSE_RESULT_TYPE_UNSPECIFIED: Default zero value enumeration
+   *  - RESPONSE_RESULT_TYPE_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
+   *  - RESPONSE_RESULT_TYPE_SUCCESS: The message was executed successfully
    */
   result?: V1ResponseResultType;
 }
@@ -870,14 +873,14 @@ export interface V1QueryUnreceivedPacketsResponse {
 }
 
 /**
-* - RESPONSE_RESULT_UNSPECIFIED: Default zero value enumeration
- - RESPONSE_RESULT_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
- - RESPONSE_RESULT_SUCCESS: The message was executed successfully
+* - RESPONSE_RESULT_TYPE_UNSPECIFIED: Default zero value enumeration
+ - RESPONSE_RESULT_TYPE_NOOP: The message did not call the IBC application callbacks (because, for example, the packet had already been relayed)
+ - RESPONSE_RESULT_TYPE_SUCCESS: The message was executed successfully
 */
 export enum V1ResponseResultType {
-  RESPONSE_RESULT_UNSPECIFIED = "RESPONSE_RESULT_UNSPECIFIED",
-  RESPONSE_RESULT_NOOP = "RESPONSE_RESULT_NOOP",
-  RESPONSE_RESULT_SUCCESS = "RESPONSE_RESULT_SUCCESS",
+  RESPONSE_RESULT_TYPE_UNSPECIFIED = "RESPONSE_RESULT_TYPE_UNSPECIFIED",
+  RESPONSE_RESULT_TYPE_NOOP = "RESPONSE_RESULT_TYPE_NOOP",
+  RESPONSE_RESULT_TYPE_SUCCESS = "RESPONSE_RESULT_TYPE_SUCCESS",
 }
 
 /**
