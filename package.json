@@ -37,7 +37,7 @@
     "axios": "0.21.1",
     "buffer": "^6.0.3",
     "events": "^3.3.0",
-    "protobufjs": "^7.2.0"
+    "protobufjs": "^7.2.4"
   },
   "peerDependencies": {
     "@cosmjs/launchpad": "0.27.0",
