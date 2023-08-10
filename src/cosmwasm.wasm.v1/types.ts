@@ -11,8 +11,10 @@ import { GenesisState_GenMsgs } from "./types/cosmwasm/wasm/v1/genesis"
 import { Code } from "./types/cosmwasm/wasm/v1/genesis"
 import { Contract } from "./types/cosmwasm/wasm/v1/genesis"
 import { Sequence } from "./types/cosmwasm/wasm/v1/genesis"
+import { MsgIBCSendResponse } from "./types/cosmwasm/wasm/v1/ibc"
 import { StoreCodeProposal } from "./types/cosmwasm/wasm/v1/proposal"
 import { InstantiateContractProposal } from "./types/cosmwasm/wasm/v1/proposal"
+import { InstantiateContract2Proposal } from "./types/cosmwasm/wasm/v1/proposal"
 import { MigrateContractProposal } from "./types/cosmwasm/wasm/v1/proposal"
 import { SudoContractProposal } from "./types/cosmwasm/wasm/v1/proposal"
 import { ExecuteContractProposal } from "./types/cosmwasm/wasm/v1/proposal"
@@ -48,8 +50,10 @@ export {
     Code,
     Contract,
     Sequence,
+    MsgIBCSendResponse,
     StoreCodeProposal,
     InstantiateContractProposal,
+    InstantiateContract2Proposal,
     MigrateContractProposal,
     SudoContractProposal,
     ExecuteContractProposal,

@@ -54,7 +54,22 @@ export interface Params {
    * Unbonding period for the consumer,
    * which should be smaller than that of the provider in general.
    */
-  unbondingPeriod: Duration | undefined;
+  unbondingPeriod:
+    | Duration
+    | undefined;
+  /**
+   * The threshold for the percentage of validators at the bottom of the set who
+   * can opt out of running the consumer chain without being punished. For example, a
+   * value of 0.05 means that the validators in the bottom 5% of the set can opt out
+   */
+  softOptOutThreshold: string;
+  /** Reward denoms. These are the denominations which are allowed to be sent to the provider as rewards. */
+  rewardDenoms: string[];
+  /**
+   * Provider-originated reward denoms. These are denoms coming from the provider
+   * which are allowed to be used as rewards. e.g. "uatom"
+   */
+  providerRewardDenoms: string[];
 }
 
 /**
@@ -90,6 +105,9 @@ function createBaseParams(): Params {
     consumerRedistributionFraction: "",
     historicalEntries: 0,
     unbondingPeriod: undefined,
+    softOptOutThreshold: "",
+    rewardDenoms: [],
+    providerRewardDenoms: [],
   };
 }
 
@@ -121,6 +139,15 @@ export const Params = {
     }
     if (message.unbondingPeriod !== undefined) {
       Duration.encode(message.unbondingPeriod, writer.uint32(74).fork()).ldelim();
+    }
+    if (message.softOptOutThreshold !== "") {
+      writer.uint32(82).string(message.softOptOutThreshold);
+    }
+    for (const v of message.rewardDenoms) {
+      writer.uint32(90).string(v!);
+    }
+    for (const v of message.providerRewardDenoms) {
+      writer.uint32(98).string(v!);
     }
     return writer;
   },
@@ -159,6 +186,15 @@ export const Params = {
         case 9:
           message.unbondingPeriod = Duration.decode(reader, reader.uint32());
           break;
+        case 10:
+          message.softOptOutThreshold = reader.string();
+          break;
+        case 11:
+          message.rewardDenoms.push(reader.string());
+          break;
+        case 12:
+          message.providerRewardDenoms.push(reader.string());
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -186,6 +222,11 @@ export const Params = {
         : "",
       historicalEntries: isSet(object.historicalEntries) ? Number(object.historicalEntries) : 0,
       unbondingPeriod: isSet(object.unbondingPeriod) ? Duration.fromJSON(object.unbondingPeriod) : undefined,
+      softOptOutThreshold: isSet(object.softOptOutThreshold) ? String(object.softOptOutThreshold) : "",
+      rewardDenoms: Array.isArray(object?.rewardDenoms) ? object.rewardDenoms.map((e: any) => String(e)) : [],
+      providerRewardDenoms: Array.isArray(object?.providerRewardDenoms)
+        ? object.providerRewardDenoms.map((e: any) => String(e))
+        : [],
     };
   },
 
@@ -207,6 +248,17 @@ export const Params = {
     message.historicalEntries !== undefined && (obj.historicalEntries = Math.round(message.historicalEntries));
     message.unbondingPeriod !== undefined
       && (obj.unbondingPeriod = message.unbondingPeriod ? Duration.toJSON(message.unbondingPeriod) : undefined);
+    message.softOptOutThreshold !== undefined && (obj.softOptOutThreshold = message.softOptOutThreshold);
+    if (message.rewardDenoms) {
+      obj.rewardDenoms = message.rewardDenoms.map((e) => e);
+    } else {
+      obj.rewardDenoms = [];
+    }
+    if (message.providerRewardDenoms) {
+      obj.providerRewardDenoms = message.providerRewardDenoms.map((e) => e);
+    } else {
+      obj.providerRewardDenoms = [];
+    }
     return obj;
   },
 
@@ -228,6 +280,9 @@ export const Params = {
     message.unbondingPeriod = (object.unbondingPeriod !== undefined && object.unbondingPeriod !== null)
       ? Duration.fromPartial(object.unbondingPeriod)
       : undefined;
+    message.softOptOutThreshold = object.softOptOutThreshold ?? "";
+    message.rewardDenoms = object.rewardDenoms?.map((e) => e) || [];
+    message.providerRewardDenoms = object.providerRewardDenoms?.map((e) => e) || [];
     return message;
   },
 };

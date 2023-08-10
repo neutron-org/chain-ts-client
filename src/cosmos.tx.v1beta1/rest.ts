@@ -213,7 +213,7 @@ export interface TenderminttypesValidator {
 }
 
 export interface TypesBlock {
-  /** Header defines the structure of a Tendermint block header. */
+  /** Header defines the structure of a block header. */
   header?: TypesHeader;
   data?: TenderminttypesData;
   evidence?: TypesEvidenceList;
@@ -295,7 +295,7 @@ export interface TypesEvidenceList {
 }
 
 /**
- * Header defines the structure of a Tendermint block header.
+ * Header defines the structure of a block header.
  */
 export interface TypesHeader {
   /**
@@ -405,7 +405,7 @@ export interface TypesPartSetHeader {
 }
 
 export interface TypesSignedHeader {
-  /** Header defines the structure of a Tendermint block header. */
+  /** Header defines the structure of a block header. */
   header?: TypesHeader;
 
   /** Commit contains the evidence that a block was committed by a set of validators. */

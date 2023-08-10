@@ -105,6 +105,22 @@ export interface Ccvconsumerv1Params {
    * which should be smaller than that of the provider in general.
    */
   unbonding_period?: string;
+
+  /**
+   * The threshold for the percentage of validators at the bottom of the set who
+   * can opt out of running the consumer chain without being punished. For example, a
+   * value of 0.05 means that the validators in the bottom 5% of the set can opt out
+   */
+  soft_opt_out_threshold?: string;
+
+  /** Reward denoms. These are the denominations which are allowed to be sent to the provider as rewards. */
+  reward_denoms?: string[];
+
+  /**
+   * Provider-originated reward denoms. These are denoms coming from the provider
+   * which are allowed to be used as rewards. e.g. "uatom"
+   */
+  provider_reward_denoms?: string[];
 }
 
 export interface CryptoPublicKey {
@@ -783,6 +799,11 @@ export interface V1MerkleRoot {
 export type V1MsgAssignConsumerKeyResponse = object;
 
 /**
+ * MsgRegisterConsumerRewardDenomResponse defines the Msg/RegisterConsumerRewardDenom response type.
+ */
+export type V1MsgRegisterConsumerRewardDenomResponse = object;
+
+/**
 * OutstandingDowntime defines the genesis information for each validator
 flagged with an outstanding downtime slashing.
 */
@@ -808,6 +829,10 @@ export interface V1QueryConsumerGenesisResponse {
   genesis_state?: Ccvconsumerv1GenesisState;
 }
 
+export interface V1QueryRegisteredConsumerRewardDenomsResponse {
+  denoms?: string[];
+}
+
 export interface V1QueryThrottleStateResponse {
   /**
    * current slash_meter state
@@ -823,10 +848,10 @@ export interface V1QueryThrottleStateResponse {
   slash_meter_allowance?: string;
 
   /**
-   * last time the slash meter was full
+   * next time the slash meter could potentially be replenished, iff it's not full
    * @format date-time
    */
-  last_full_time?: string;
+  next_replenish_candidate?: string;
 
   /** data relevant to currently throttled slash packets */
   packets?: V1ThrottledSlashPacket[];
@@ -1138,6 +1163,22 @@ whose proposal has been accepted
       path: `/interchain_security/ccv/provider/pending_consumer_packets`,
       method: "GET",
       query: query,
+      format: "json",
+      ...params,
+    });
+
+  /**
+   * No description
+   *
+   * @tags Query
+   * @name QueryQueryRegisteredConsumerRewardDenoms
+   * @summary QueryRegisteredConsumerRewardDenoms returns a list of consumer reward denoms that are registered
+   * @request GET:/interchain_security/ccv/provider/registered_consumer_reward_denoms
+   */
+  queryQueryRegisteredConsumerRewardDenoms = (params: RequestParams = {}) =>
+    this.request<V1QueryRegisteredConsumerRewardDenomsResponse, RpcStatus>({
+      path: `/interchain_security/ccv/provider/registered_consumer_reward_denoms`,
+      method: "GET",
       format: "json",
       ...params,
     });

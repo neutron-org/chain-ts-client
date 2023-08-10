@@ -235,21 +235,6 @@ export type InterchainqueriesMsgSubmitQueryResultResponse = object;
 
 export type InterchainqueriesMsgUpdateInterchainQueryResponse = object;
 
-/**
- * Params defines the parameters for the module.
- */
-export interface InterchainqueriesParams {
-  /**
-   * Defines amount of blocks required before query becomes available for
-   * removal by anybody
-   * @format uint64
-   */
-  query_submit_timeout?: string;
-
-  /** Amount of coins deposited for the query. */
-  query_deposit?: V1Beta1Coin[];
-}
-
 export interface InterchainqueriesQueryLastRemoteHeightResponse {
   /** @format uint64 */
   height?: string;
@@ -260,7 +245,7 @@ export interface InterchainqueriesQueryLastRemoteHeightResponse {
  */
 export interface InterchainqueriesQueryParamsResponse {
   /** params holds all the parameters of this module. */
-  params?: InterchainqueriesParams;
+  params?: NeutroninterchainqueriesParams;
 }
 
 export interface InterchainqueriesQueryRegisteredQueriesResponse {
@@ -324,11 +309,8 @@ export interface InterchainqueriesRegisteredQuery {
    */
   last_submitted_result_local_height?: string;
 
-  /**
-   * The remote chain last block height when the query result was updated.
-   * @format uint64
-   */
-  last_submitted_result_remote_height?: string;
+  /** The remote chain last block height when the query result was updated. */
+  last_submitted_result_remote_height?: V1Height;
 
   /** Amount of coins deposited for the query. */
   deposit?: V1Beta1Coin[];
@@ -338,6 +320,12 @@ export interface InterchainqueriesRegisteredQuery {
    * @format uint64
    */
   submit_timeout?: string;
+
+  /**
+   * The local chain height when the query was registered.
+   * @format uint64
+   */
+  registered_at_height?: string;
 }
 
 export interface InterchainqueriesStorageValue {
@@ -383,6 +371,29 @@ export interface InterchainqueriesTxValue {
    * @format byte
    */
   data?: string;
+}
+
+/**
+ * Params defines the parameters for the module.
+ */
+export interface NeutroninterchainqueriesParams {
+  /**
+   * Defines amount of blocks required before query becomes available for
+   * removal by anybody
+   * @format uint64
+   */
+  query_submit_timeout?: string;
+
+  /** Amount of coins deposited for the query. */
+  query_deposit?: V1Beta1Coin[];
+
+  /**
+   * Amount of tx hashes to be removed during a single EndBlock. Can vary to
+   * balance between network cleaning speed and EndBlock duration. A zero value
+   * means no limit.
+   * @format uint64
+   */
+  tx_query_removal_limit?: string;
 }
 
 /**
@@ -507,6 +518,28 @@ export interface RpcStatus {
 }
 
 /**
+* Normally the RevisionHeight is incremented at each height while keeping
+RevisionNumber the same. However some consensus algorithms may choose to
+reset the height in certain conditions e.g. hard forks, state-machine
+breaking changes In these cases, the RevisionNumber is incremented so that
+height continues to be monitonically increasing even as the RevisionHeight
+gets reset
+*/
+export interface V1Height {
+  /**
+   * the revision that the client is currently on
+   * @format uint64
+   */
+  revision_number?: string;
+
+  /**
+   * the height within the given revision
+   * @format uint64
+   */
+  revision_height?: string;
+}
+
+/**
 * Coin defines a token with a denomination and an amount.
 
 NOTE: The amount field is an Int which implements the custom method
@@ -554,13 +587,6 @@ export interface V1Beta1PageRequest {
    * is set.
    */
   count_total?: boolean;
-
-  /**
-   * reverse is set to true if results are to be returned in the descending order.
-   *
-   * Since: cosmos-sdk 0.43
-   */
-  reverse?: boolean;
 }
 
 /**
@@ -760,7 +786,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       "pagination.offset"?: string;
       "pagination.limit"?: string;
       "pagination.count_total"?: boolean;
-      "pagination.reverse"?: boolean;
     },
     params: RequestParams = {},
   ) =>

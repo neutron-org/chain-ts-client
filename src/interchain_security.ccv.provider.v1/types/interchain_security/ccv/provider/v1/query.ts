@@ -77,8 +77,8 @@ export interface QueryThrottleStateResponse {
    * this also serves as the max value for the meter.
    */
   slashMeterAllowance: number;
-  /** last time the slash meter was full */
-  lastFullTime:
+  /** next time the slash meter could potentially be replenished, iff it's not full */
+  nextReplenishCandidate:
     | Date
     | undefined;
   /** data relevant to currently throttled slash packets */
@@ -105,6 +105,13 @@ export interface ThrottledSlashPacket {
 export interface ThrottledPacketDataWrapper {
   slashPacket: SlashPacketData | undefined;
   vscMaturedPacket: VSCMaturedPacketData | undefined;
+}
+
+export interface QueryRegisteredConsumerRewardDenomsRequest {
+}
+
+export interface QueryRegisteredConsumerRewardDenomsResponse {
+  denoms: string[];
 }
 
 function createBaseQueryConsumerGenesisRequest(): QueryConsumerGenesisRequest {
@@ -796,7 +803,7 @@ export const QueryThrottleStateRequest = {
 };
 
 function createBaseQueryThrottleStateResponse(): QueryThrottleStateResponse {
-  return { slashMeter: 0, slashMeterAllowance: 0, lastFullTime: undefined, packets: [] };
+  return { slashMeter: 0, slashMeterAllowance: 0, nextReplenishCandidate: undefined, packets: [] };
 }
 
 export const QueryThrottleStateResponse = {
@@ -807,8 +814,8 @@ export const QueryThrottleStateResponse = {
     if (message.slashMeterAllowance !== 0) {
       writer.uint32(16).int64(message.slashMeterAllowance);
     }
-    if (message.lastFullTime !== undefined) {
-      Timestamp.encode(toTimestamp(message.lastFullTime), writer.uint32(26).fork()).ldelim();
+    if (message.nextReplenishCandidate !== undefined) {
+      Timestamp.encode(toTimestamp(message.nextReplenishCandidate), writer.uint32(26).fork()).ldelim();
     }
     for (const v of message.packets) {
       ThrottledSlashPacket.encode(v!, writer.uint32(34).fork()).ldelim();
@@ -830,7 +837,7 @@ export const QueryThrottleStateResponse = {
           message.slashMeterAllowance = longToNumber(reader.int64() as Long);
           break;
         case 3:
-          message.lastFullTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          message.nextReplenishCandidate = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           break;
         case 4:
           message.packets.push(ThrottledSlashPacket.decode(reader, reader.uint32()));
@@ -847,7 +854,9 @@ export const QueryThrottleStateResponse = {
     return {
       slashMeter: isSet(object.slashMeter) ? Number(object.slashMeter) : 0,
       slashMeterAllowance: isSet(object.slashMeterAllowance) ? Number(object.slashMeterAllowance) : 0,
-      lastFullTime: isSet(object.lastFullTime) ? fromJsonTimestamp(object.lastFullTime) : undefined,
+      nextReplenishCandidate: isSet(object.nextReplenishCandidate)
+        ? fromJsonTimestamp(object.nextReplenishCandidate)
+        : undefined,
       packets: Array.isArray(object?.packets) ? object.packets.map((e: any) => ThrottledSlashPacket.fromJSON(e)) : [],
     };
   },
@@ -856,7 +865,8 @@ export const QueryThrottleStateResponse = {
     const obj: any = {};
     message.slashMeter !== undefined && (obj.slashMeter = Math.round(message.slashMeter));
     message.slashMeterAllowance !== undefined && (obj.slashMeterAllowance = Math.round(message.slashMeterAllowance));
-    message.lastFullTime !== undefined && (obj.lastFullTime = message.lastFullTime.toISOString());
+    message.nextReplenishCandidate !== undefined
+      && (obj.nextReplenishCandidate = message.nextReplenishCandidate.toISOString());
     if (message.packets) {
       obj.packets = message.packets.map((e) => e ? ThrottledSlashPacket.toJSON(e) : undefined);
     } else {
@@ -869,7 +879,7 @@ export const QueryThrottleStateResponse = {
     const message = createBaseQueryThrottleStateResponse();
     message.slashMeter = object.slashMeter ?? 0;
     message.slashMeterAllowance = object.slashMeterAllowance ?? 0;
-    message.lastFullTime = object.lastFullTime ?? undefined;
+    message.nextReplenishCandidate = object.nextReplenishCandidate ?? undefined;
     message.packets = object.packets?.map((e) => ThrottledSlashPacket.fromPartial(e)) || [];
     return message;
   },
@@ -1132,6 +1142,100 @@ export const ThrottledPacketDataWrapper = {
   },
 };
 
+function createBaseQueryRegisteredConsumerRewardDenomsRequest(): QueryRegisteredConsumerRewardDenomsRequest {
+  return {};
+}
+
+export const QueryRegisteredConsumerRewardDenomsRequest = {
+  encode(_: QueryRegisteredConsumerRewardDenomsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): QueryRegisteredConsumerRewardDenomsRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseQueryRegisteredConsumerRewardDenomsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(_: any): QueryRegisteredConsumerRewardDenomsRequest {
+    return {};
+  },
+
+  toJSON(_: QueryRegisteredConsumerRewardDenomsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<QueryRegisteredConsumerRewardDenomsRequest>, I>>(
+    _: I,
+  ): QueryRegisteredConsumerRewardDenomsRequest {
+    const message = createBaseQueryRegisteredConsumerRewardDenomsRequest();
+    return message;
+  },
+};
+
+function createBaseQueryRegisteredConsumerRewardDenomsResponse(): QueryRegisteredConsumerRewardDenomsResponse {
+  return { denoms: [] };
+}
+
+export const QueryRegisteredConsumerRewardDenomsResponse = {
+  encode(message: QueryRegisteredConsumerRewardDenomsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    for (const v of message.denoms) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): QueryRegisteredConsumerRewardDenomsResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseQueryRegisteredConsumerRewardDenomsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.denoms.push(reader.string());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): QueryRegisteredConsumerRewardDenomsResponse {
+    return { denoms: Array.isArray(object?.denoms) ? object.denoms.map((e: any) => String(e)) : [] };
+  },
+
+  toJSON(message: QueryRegisteredConsumerRewardDenomsResponse): unknown {
+    const obj: any = {};
+    if (message.denoms) {
+      obj.denoms = message.denoms.map((e) => e);
+    } else {
+      obj.denoms = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<QueryRegisteredConsumerRewardDenomsResponse>, I>>(
+    object: I,
+  ): QueryRegisteredConsumerRewardDenomsResponse {
+    const message = createBaseQueryRegisteredConsumerRewardDenomsResponse();
+    message.denoms = object.denoms?.map((e) => e) || [];
+    return message;
+  },
+};
+
 export interface Query {
   /**
    * ConsumerGenesis queries the genesis state needed to start a consumer chain
@@ -1170,6 +1274,10 @@ export interface Query {
   QueryThrottledConsumerPacketData(
     request: QueryThrottledConsumerPacketDataRequest,
   ): Promise<QueryThrottledConsumerPacketDataResponse>;
+  /** QueryRegisteredConsumerRewardDenoms returns a list of consumer reward denoms that are registered */
+  QueryRegisteredConsumerRewardDenoms(
+    request: QueryRegisteredConsumerRewardDenomsRequest,
+  ): Promise<QueryRegisteredConsumerRewardDenomsResponse>;
 }
 
 export class QueryClientImpl implements Query {
@@ -1184,6 +1292,7 @@ export class QueryClientImpl implements Query {
     this.QueryValidatorProviderAddr = this.QueryValidatorProviderAddr.bind(this);
     this.QueryThrottleState = this.QueryThrottleState.bind(this);
     this.QueryThrottledConsumerPacketData = this.QueryThrottledConsumerPacketData.bind(this);
+    this.QueryRegisteredConsumerRewardDenoms = this.QueryRegisteredConsumerRewardDenoms.bind(this);
   }
   QueryConsumerGenesis(request: QueryConsumerGenesisRequest): Promise<QueryConsumerGenesisResponse> {
     const data = QueryConsumerGenesisRequest.encode(request).finish();
@@ -1241,6 +1350,18 @@ export class QueryClientImpl implements Query {
       data,
     );
     return promise.then((data) => QueryThrottledConsumerPacketDataResponse.decode(new _m0.Reader(data)));
+  }
+
+  QueryRegisteredConsumerRewardDenoms(
+    request: QueryRegisteredConsumerRewardDenomsRequest,
+  ): Promise<QueryRegisteredConsumerRewardDenomsResponse> {
+    const data = QueryRegisteredConsumerRewardDenomsRequest.encode(request).finish();
+    const promise = this.rpc.request(
+      "interchain_security.ccv.provider.v1.Query",
+      "QueryRegisteredConsumerRewardDenoms",
+      data,
+    );
+    return promise.then((data) => QueryRegisteredConsumerRewardDenomsResponse.decode(new _m0.Reader(data)));
   }
 }
 

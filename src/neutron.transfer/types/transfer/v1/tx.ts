@@ -32,6 +32,7 @@ export interface MsgTransfer {
    * The timeout is disabled when set to 0.
    */
   timeoutTimestamp: number;
+  memo: string;
   fee: Fee | undefined;
 }
 
@@ -55,6 +56,7 @@ function createBaseMsgTransfer(): MsgTransfer {
     receiver: "",
     timeoutHeight: undefined,
     timeoutTimestamp: 0,
+    memo: "",
     fee: undefined,
   };
 }
@@ -82,8 +84,11 @@ export const MsgTransfer = {
     if (message.timeoutTimestamp !== 0) {
       writer.uint32(56).uint64(message.timeoutTimestamp);
     }
+    if (message.memo !== "") {
+      writer.uint32(66).string(message.memo);
+    }
     if (message.fee !== undefined) {
-      Fee.encode(message.fee, writer.uint32(66).fork()).ldelim();
+      Fee.encode(message.fee, writer.uint32(74).fork()).ldelim();
     }
     return writer;
   },
@@ -117,6 +122,9 @@ export const MsgTransfer = {
           message.timeoutTimestamp = longToNumber(reader.uint64() as Long);
           break;
         case 8:
+          message.memo = reader.string();
+          break;
+        case 9:
           message.fee = Fee.decode(reader, reader.uint32());
           break;
         default:
@@ -136,6 +144,7 @@ export const MsgTransfer = {
       receiver: isSet(object.receiver) ? String(object.receiver) : "",
       timeoutHeight: isSet(object.timeoutHeight) ? Height.fromJSON(object.timeoutHeight) : undefined,
       timeoutTimestamp: isSet(object.timeoutTimestamp) ? Number(object.timeoutTimestamp) : 0,
+      memo: isSet(object.memo) ? String(object.memo) : "",
       fee: isSet(object.fee) ? Fee.fromJSON(object.fee) : undefined,
     };
   },
@@ -150,6 +159,7 @@ export const MsgTransfer = {
     message.timeoutHeight !== undefined
       && (obj.timeoutHeight = message.timeoutHeight ? Height.toJSON(message.timeoutHeight) : undefined);
     message.timeoutTimestamp !== undefined && (obj.timeoutTimestamp = Math.round(message.timeoutTimestamp));
+    message.memo !== undefined && (obj.memo = message.memo);
     message.fee !== undefined && (obj.fee = message.fee ? Fee.toJSON(message.fee) : undefined);
     return obj;
   },
@@ -165,6 +175,7 @@ export const MsgTransfer = {
       ? Height.fromPartial(object.timeoutHeight)
       : undefined;
     message.timeoutTimestamp = object.timeoutTimestamp ?? 0;
+    message.memo = object.memo ?? "";
     message.fee = (object.fee !== undefined && object.fee !== null) ? Fee.fromPartial(object.fee) : undefined;
     return message;
   },

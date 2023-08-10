@@ -1,6 +1,8 @@
 /* eslint-disable */
 import Long from "long";
 import _m0 from "protobufjs/minimal";
+import { Coin } from "../../../../cosmos/base/v1beta1/coin";
+import { Equivocation } from "../../../../cosmos/evidence/v1beta1/evidence";
 import { Duration } from "../../../../google/protobuf/duration";
 import { Timestamp } from "../../../../google/protobuf/timestamp";
 import { Height } from "../../../../ibc/core/client/v1/client";
@@ -98,6 +100,15 @@ export interface ConsumerRemovalProposal {
   stopTime: Date | undefined;
 }
 
+export interface EquivocationProposal {
+  /** the title of the proposal */
+  title: string;
+  /** the description of the proposal */
+  description: string;
+  /** the list of equivocations that will be processed */
+  equivocations: Equivocation[];
+}
+
 /**
  * A persisted queue entry indicating that a slash packet data instance needs to be handled.
  * This type belongs in the "global" queue, to coordinate slash packet handling times between consumers.
@@ -164,6 +175,8 @@ export interface Params {
    * that can be queued for a single consumer before the provider chain halts.
    */
   maxThrottledPackets: number;
+  /** The fee required to be paid to add a reward denom */
+  consumerRewardDenomRegistrationFee: Coin | undefined;
 }
 
 export interface HandshakeMetadata {
@@ -509,6 +522,79 @@ export const ConsumerRemovalProposal = {
   },
 };
 
+function createBaseEquivocationProposal(): EquivocationProposal {
+  return { title: "", description: "", equivocations: [] };
+}
+
+export const EquivocationProposal = {
+  encode(message: EquivocationProposal, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.title !== "") {
+      writer.uint32(10).string(message.title);
+    }
+    if (message.description !== "") {
+      writer.uint32(18).string(message.description);
+    }
+    for (const v of message.equivocations) {
+      Equivocation.encode(v!, writer.uint32(26).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): EquivocationProposal {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEquivocationProposal();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.title = reader.string();
+          break;
+        case 2:
+          message.description = reader.string();
+          break;
+        case 3:
+          message.equivocations.push(Equivocation.decode(reader, reader.uint32()));
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EquivocationProposal {
+    return {
+      title: isSet(object.title) ? String(object.title) : "",
+      description: isSet(object.description) ? String(object.description) : "",
+      equivocations: Array.isArray(object?.equivocations)
+        ? object.equivocations.map((e: any) => Equivocation.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: EquivocationProposal): unknown {
+    const obj: any = {};
+    message.title !== undefined && (obj.title = message.title);
+    message.description !== undefined && (obj.description = message.description);
+    if (message.equivocations) {
+      obj.equivocations = message.equivocations.map((e) => e ? Equivocation.toJSON(e) : undefined);
+    } else {
+      obj.equivocations = [];
+    }
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<EquivocationProposal>, I>>(object: I): EquivocationProposal {
+    const message = createBaseEquivocationProposal();
+    message.title = object.title ?? "";
+    message.description = object.description ?? "";
+    message.equivocations = object.equivocations?.map((e) => Equivocation.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 function createBaseGlobalSlashEntry(): GlobalSlashEntry {
   return { recvTime: undefined, consumerChainId: "", ibcSeqNum: 0, providerValConsAddr: new Uint8Array() };
 }
@@ -600,6 +686,7 @@ function createBaseParams(): Params {
     slashMeterReplenishPeriod: undefined,
     slashMeterReplenishFraction: "",
     maxThrottledPackets: 0,
+    consumerRewardDenomRegistrationFee: undefined,
   };
 }
 
@@ -628,6 +715,9 @@ export const Params = {
     }
     if (message.maxThrottledPackets !== 0) {
       writer.uint32(64).int64(message.maxThrottledPackets);
+    }
+    if (message.consumerRewardDenomRegistrationFee !== undefined) {
+      Coin.encode(message.consumerRewardDenomRegistrationFee, writer.uint32(74).fork()).ldelim();
     }
     return writer;
   },
@@ -663,6 +753,9 @@ export const Params = {
         case 8:
           message.maxThrottledPackets = longToNumber(reader.int64() as Long);
           break;
+        case 9:
+          message.consumerRewardDenomRegistrationFee = Coin.decode(reader, reader.uint32());
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -685,6 +778,9 @@ export const Params = {
         ? String(object.slashMeterReplenishFraction)
         : "",
       maxThrottledPackets: isSet(object.maxThrottledPackets) ? Number(object.maxThrottledPackets) : 0,
+      consumerRewardDenomRegistrationFee: isSet(object.consumerRewardDenomRegistrationFee)
+        ? Coin.fromJSON(object.consumerRewardDenomRegistrationFee)
+        : undefined,
     };
   },
 
@@ -706,6 +802,10 @@ export const Params = {
     message.slashMeterReplenishFraction !== undefined
       && (obj.slashMeterReplenishFraction = message.slashMeterReplenishFraction);
     message.maxThrottledPackets !== undefined && (obj.maxThrottledPackets = Math.round(message.maxThrottledPackets));
+    message.consumerRewardDenomRegistrationFee !== undefined
+      && (obj.consumerRewardDenomRegistrationFee = message.consumerRewardDenomRegistrationFee
+        ? Coin.toJSON(message.consumerRewardDenomRegistrationFee)
+        : undefined);
     return obj;
   },
 
@@ -730,6 +830,10 @@ export const Params = {
         : undefined;
     message.slashMeterReplenishFraction = object.slashMeterReplenishFraction ?? "";
     message.maxThrottledPackets = object.maxThrottledPackets ?? 0;
+    message.consumerRewardDenomRegistrationFee =
+      (object.consumerRewardDenomRegistrationFee !== undefined && object.consumerRewardDenomRegistrationFee !== null)
+        ? Coin.fromPartial(object.consumerRewardDenomRegistrationFee)
+        : undefined;
     return message;
   },
 };

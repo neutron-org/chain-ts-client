@@ -2,6 +2,7 @@
 import Long from "long";
 import _m0 from "protobufjs/minimal";
 import { Coin } from "../cosmos/base/v1beta1/coin";
+import { Height } from "../ibc/core/client/v1/client";
 import { Params } from "./params";
 
 export const protobufPackage = "neutron.interchainqueries";
@@ -24,11 +25,15 @@ export interface RegisteredQuery {
   /** The local chain last block height when the query result was updated. */
   lastSubmittedResultLocalHeight: number;
   /** The remote chain last block height when the query result was updated. */
-  lastSubmittedResultRemoteHeight: number;
+  lastSubmittedResultRemoteHeight:
+    | Height
+    | undefined;
   /** Amount of coins deposited for the query. */
   deposit: Coin[];
   /** Timeout before query becomes available for everybody to remove. */
   submitTimeout: number;
+  /** The local chain height when the query was registered. */
+  registeredAtHeight: number;
 }
 
 export interface KVKey {
@@ -57,9 +62,10 @@ function createBaseRegisteredQuery(): RegisteredQuery {
     connectionId: "",
     updatePeriod: 0,
     lastSubmittedResultLocalHeight: 0,
-    lastSubmittedResultRemoteHeight: 0,
+    lastSubmittedResultRemoteHeight: undefined,
     deposit: [],
     submitTimeout: 0,
+    registeredAtHeight: 0,
   };
 }
 
@@ -89,14 +95,17 @@ export const RegisteredQuery = {
     if (message.lastSubmittedResultLocalHeight !== 0) {
       writer.uint32(64).uint64(message.lastSubmittedResultLocalHeight);
     }
-    if (message.lastSubmittedResultRemoteHeight !== 0) {
-      writer.uint32(72).uint64(message.lastSubmittedResultRemoteHeight);
+    if (message.lastSubmittedResultRemoteHeight !== undefined) {
+      Height.encode(message.lastSubmittedResultRemoteHeight, writer.uint32(74).fork()).ldelim();
     }
     for (const v of message.deposit) {
       Coin.encode(v!, writer.uint32(82).fork()).ldelim();
     }
     if (message.submitTimeout !== 0) {
       writer.uint32(88).uint64(message.submitTimeout);
+    }
+    if (message.registeredAtHeight !== 0) {
+      writer.uint32(96).uint64(message.registeredAtHeight);
     }
     return writer;
   },
@@ -133,13 +142,16 @@ export const RegisteredQuery = {
           message.lastSubmittedResultLocalHeight = longToNumber(reader.uint64() as Long);
           break;
         case 9:
-          message.lastSubmittedResultRemoteHeight = longToNumber(reader.uint64() as Long);
+          message.lastSubmittedResultRemoteHeight = Height.decode(reader, reader.uint32());
           break;
         case 10:
           message.deposit.push(Coin.decode(reader, reader.uint32()));
           break;
         case 11:
           message.submitTimeout = longToNumber(reader.uint64() as Long);
+          break;
+        case 12:
+          message.registeredAtHeight = longToNumber(reader.uint64() as Long);
           break;
         default:
           reader.skipType(tag & 7);
@@ -162,10 +174,11 @@ export const RegisteredQuery = {
         ? Number(object.lastSubmittedResultLocalHeight)
         : 0,
       lastSubmittedResultRemoteHeight: isSet(object.lastSubmittedResultRemoteHeight)
-        ? Number(object.lastSubmittedResultRemoteHeight)
-        : 0,
+        ? Height.fromJSON(object.lastSubmittedResultRemoteHeight)
+        : undefined,
       deposit: Array.isArray(object?.deposit) ? object.deposit.map((e: any) => Coin.fromJSON(e)) : [],
       submitTimeout: isSet(object.submitTimeout) ? Number(object.submitTimeout) : 0,
+      registeredAtHeight: isSet(object.registeredAtHeight) ? Number(object.registeredAtHeight) : 0,
     };
   },
 
@@ -185,13 +198,16 @@ export const RegisteredQuery = {
     message.lastSubmittedResultLocalHeight !== undefined
       && (obj.lastSubmittedResultLocalHeight = Math.round(message.lastSubmittedResultLocalHeight));
     message.lastSubmittedResultRemoteHeight !== undefined
-      && (obj.lastSubmittedResultRemoteHeight = Math.round(message.lastSubmittedResultRemoteHeight));
+      && (obj.lastSubmittedResultRemoteHeight = message.lastSubmittedResultRemoteHeight
+        ? Height.toJSON(message.lastSubmittedResultRemoteHeight)
+        : undefined);
     if (message.deposit) {
       obj.deposit = message.deposit.map((e) => e ? Coin.toJSON(e) : undefined);
     } else {
       obj.deposit = [];
     }
     message.submitTimeout !== undefined && (obj.submitTimeout = Math.round(message.submitTimeout));
+    message.registeredAtHeight !== undefined && (obj.registeredAtHeight = Math.round(message.registeredAtHeight));
     return obj;
   },
 
@@ -205,9 +221,13 @@ export const RegisteredQuery = {
     message.connectionId = object.connectionId ?? "";
     message.updatePeriod = object.updatePeriod ?? 0;
     message.lastSubmittedResultLocalHeight = object.lastSubmittedResultLocalHeight ?? 0;
-    message.lastSubmittedResultRemoteHeight = object.lastSubmittedResultRemoteHeight ?? 0;
+    message.lastSubmittedResultRemoteHeight =
+      (object.lastSubmittedResultRemoteHeight !== undefined && object.lastSubmittedResultRemoteHeight !== null)
+        ? Height.fromPartial(object.lastSubmittedResultRemoteHeight)
+        : undefined;
     message.deposit = object.deposit?.map((e) => Coin.fromPartial(e)) || [];
     message.submitTimeout = object.submitTimeout ?? 0;
+    message.registeredAtHeight = object.registeredAtHeight ?? 0;
     return message;
   },
 };

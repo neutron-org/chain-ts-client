@@ -1,6 +1,7 @@
 /* eslint-disable */
 import Long from "long";
 import _m0 from "protobufjs/minimal";
+import { Params } from "./consumer";
 
 export const protobufPackage = "interchain_security.ccv.consumer.v1";
 
@@ -27,6 +28,15 @@ export interface QueryNextFeeDistributionEstimateRequest {
 
 export interface QueryNextFeeDistributionEstimateResponse {
   data: NextFeeDistributionEstimate | undefined;
+}
+
+export interface QueryParamsRequest {
+}
+
+/** QueryParamsResponse is response type for the Query/Params RPC method. */
+export interface QueryParamsResponse {
+  /** params holds all the parameters of this module. */
+  params: Params | undefined;
 }
 
 function createBaseNextFeeDistributionEstimate(): NextFeeDistributionEstimate {
@@ -233,6 +243,94 @@ export const QueryNextFeeDistributionEstimateResponse = {
   },
 };
 
+function createBaseQueryParamsRequest(): QueryParamsRequest {
+  return {};
+}
+
+export const QueryParamsRequest = {
+  encode(_: QueryParamsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): QueryParamsRequest {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseQueryParamsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(_: any): QueryParamsRequest {
+    return {};
+  },
+
+  toJSON(_: QueryParamsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<QueryParamsRequest>, I>>(_: I): QueryParamsRequest {
+    const message = createBaseQueryParamsRequest();
+    return message;
+  },
+};
+
+function createBaseQueryParamsResponse(): QueryParamsResponse {
+  return { params: undefined };
+}
+
+export const QueryParamsResponse = {
+  encode(message: QueryParamsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.params !== undefined) {
+      Params.encode(message.params, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): QueryParamsResponse {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseQueryParamsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.params = Params.decode(reader, reader.uint32());
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): QueryParamsResponse {
+    return { params: isSet(object.params) ? Params.fromJSON(object.params) : undefined };
+  },
+
+  toJSON(message: QueryParamsResponse): unknown {
+    const obj: any = {};
+    message.params !== undefined && (obj.params = message.params ? Params.toJSON(message.params) : undefined);
+    return obj;
+  },
+
+  fromPartial<I extends Exact<DeepPartial<QueryParamsResponse>, I>>(object: I): QueryParamsResponse {
+    const message = createBaseQueryParamsResponse();
+    message.params = (object.params !== undefined && object.params !== null)
+      ? Params.fromPartial(object.params)
+      : undefined;
+    return message;
+  },
+};
+
 export interface Query {
   /**
    * ConsumerGenesis queries the genesis state needed to start a consumer chain
@@ -241,6 +339,8 @@ export interface Query {
   QueryNextFeeDistribution(
     request: QueryNextFeeDistributionEstimateRequest,
   ): Promise<QueryNextFeeDistributionEstimateResponse>;
+  /** QueryParams queries the ccv/consumer module parameters. */
+  QueryParams(request: QueryParamsRequest): Promise<QueryParamsResponse>;
 }
 
 export class QueryClientImpl implements Query {
@@ -248,6 +348,7 @@ export class QueryClientImpl implements Query {
   constructor(rpc: Rpc) {
     this.rpc = rpc;
     this.QueryNextFeeDistribution = this.QueryNextFeeDistribution.bind(this);
+    this.QueryParams = this.QueryParams.bind(this);
   }
   QueryNextFeeDistribution(
     request: QueryNextFeeDistributionEstimateRequest,
@@ -255,6 +356,12 @@ export class QueryClientImpl implements Query {
     const data = QueryNextFeeDistributionEstimateRequest.encode(request).finish();
     const promise = this.rpc.request("interchain_security.ccv.consumer.v1.Query", "QueryNextFeeDistribution", data);
     return promise.then((data) => QueryNextFeeDistributionEstimateResponse.decode(new _m0.Reader(data)));
+  }
+
+  QueryParams(request: QueryParamsRequest): Promise<QueryParamsResponse> {
+    const data = QueryParamsRequest.encode(request).finish();
+    const promise = this.rpc.request("interchain_security.ccv.consumer.v1.Query", "QueryParams", data);
+    return promise.then((data) => QueryParamsResponse.decode(new _m0.Reader(data)));
   }
 }
 

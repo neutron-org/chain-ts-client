@@ -14,10 +14,16 @@ export interface Params {
   querySubmitTimeout: number;
   /** Amount of coins deposited for the query. */
   queryDeposit: Coin[];
+  /**
+   * Amount of tx hashes to be removed during a single EndBlock. Can vary to
+   * balance between network cleaning speed and EndBlock duration. A zero value
+   * means no limit.
+   */
+  txQueryRemovalLimit: number;
 }
 
 function createBaseParams(): Params {
-  return { querySubmitTimeout: 0, queryDeposit: [] };
+  return { querySubmitTimeout: 0, queryDeposit: [], txQueryRemovalLimit: 0 };
 }
 
 export const Params = {
@@ -27,6 +33,9 @@ export const Params = {
     }
     for (const v of message.queryDeposit) {
       Coin.encode(v!, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.txQueryRemovalLimit !== 0) {
+      writer.uint32(24).uint64(message.txQueryRemovalLimit);
     }
     return writer;
   },
@@ -44,6 +53,9 @@ export const Params = {
         case 2:
           message.queryDeposit.push(Coin.decode(reader, reader.uint32()));
           break;
+        case 3:
+          message.txQueryRemovalLimit = longToNumber(reader.uint64() as Long);
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -56,6 +68,7 @@ export const Params = {
     return {
       querySubmitTimeout: isSet(object.querySubmitTimeout) ? Number(object.querySubmitTimeout) : 0,
       queryDeposit: Array.isArray(object?.queryDeposit) ? object.queryDeposit.map((e: any) => Coin.fromJSON(e)) : [],
+      txQueryRemovalLimit: isSet(object.txQueryRemovalLimit) ? Number(object.txQueryRemovalLimit) : 0,
     };
   },
 
@@ -67,6 +80,7 @@ export const Params = {
     } else {
       obj.queryDeposit = [];
     }
+    message.txQueryRemovalLimit !== undefined && (obj.txQueryRemovalLimit = Math.round(message.txQueryRemovalLimit));
     return obj;
   },
 
@@ -74,6 +88,7 @@ export const Params = {
     const message = createBaseParams();
     message.querySubmitTimeout = object.querySubmitTimeout ?? 0;
     message.queryDeposit = object.queryDeposit?.map((e) => Coin.fromPartial(e)) || [];
+    message.txQueryRemovalLimit = object.txQueryRemovalLimit ?? 0;
     return message;
   },
 };

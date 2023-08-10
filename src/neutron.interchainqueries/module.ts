@@ -7,9 +7,9 @@ import { msgTypes } from './registry';
 import { IgniteClient } from "../client"
 import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
-import { MsgSubmitQueryResult } from "./types/interchainqueries/tx";
-import { MsgRegisterInterchainQuery } from "./types/interchainqueries/tx";
 import { MsgRemoveInterchainQueryRequest } from "./types/interchainqueries/tx";
+import { MsgRegisterInterchainQuery } from "./types/interchainqueries/tx";
+import { MsgSubmitQueryResult } from "./types/interchainqueries/tx";
 
 import { RegisteredQuery as typeRegisteredQuery} from "./types"
 import { KVKey as typeKVKey} from "./types"
@@ -20,10 +20,10 @@ import { StorageValue as typeStorageValue} from "./types"
 import { Block as typeBlock} from "./types"
 import { TxValue as typeTxValue} from "./types"
 
-export { MsgSubmitQueryResult, MsgRegisterInterchainQuery, MsgRemoveInterchainQueryRequest };
+export { MsgRemoveInterchainQueryRequest, MsgRegisterInterchainQuery, MsgSubmitQueryResult };
 
-type sendMsgSubmitQueryResultParams = {
-  value: MsgSubmitQueryResult,
+type sendMsgRemoveInterchainQueryRequestParams = {
+  value: MsgRemoveInterchainQueryRequest,
   fee?: StdFee,
   memo?: string
 };
@@ -34,23 +34,23 @@ type sendMsgRegisterInterchainQueryParams = {
   memo?: string
 };
 
-type sendMsgRemoveInterchainQueryRequestParams = {
-  value: MsgRemoveInterchainQueryRequest,
+type sendMsgSubmitQueryResultParams = {
+  value: MsgSubmitQueryResult,
   fee?: StdFee,
   memo?: string
 };
 
 
-type msgSubmitQueryResultParams = {
-  value: MsgSubmitQueryResult,
+type msgRemoveInterchainQueryRequestParams = {
+  value: MsgRemoveInterchainQueryRequest,
 };
 
 type msgRegisterInterchainQueryParams = {
   value: MsgRegisterInterchainQuery,
 };
 
-type msgRemoveInterchainQueryRequestParams = {
-  value: MsgRemoveInterchainQueryRequest,
+type msgSubmitQueryResultParams = {
+  value: MsgSubmitQueryResult,
 };
 
 
@@ -83,17 +83,17 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 
   return {
 		
-		async sendMsgSubmitQueryResult({ value, fee, memo }: sendMsgSubmitQueryResultParams): Promise<DeliverTxResponse> {
+		async sendMsgRemoveInterchainQueryRequest({ value, fee, memo }: sendMsgRemoveInterchainQueryRequestParams): Promise<DeliverTxResponse> {
 			if (!signer) {
-					throw new Error('TxClient:sendMsgSubmitQueryResult: Unable to sign Tx. Signer is not present.')
+					throw new Error('TxClient:sendMsgRemoveInterchainQueryRequest: Unable to sign Tx. Signer is not present.')
 			}
 			try {			
 				const { address } = (await signer.getAccounts())[0]; 
 				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
-				let msg = this.msgSubmitQueryResult({ value: MsgSubmitQueryResult.fromPartial(value) })
+				let msg = this.msgRemoveInterchainQueryRequest({ value: MsgRemoveInterchainQueryRequest.fromPartial(value) })
 				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
 			} catch (e: any) {
-				throw new Error('TxClient:sendMsgSubmitQueryResult: Could not broadcast Tx: '+ e.message)
+				throw new Error('TxClient:sendMsgRemoveInterchainQueryRequest: Could not broadcast Tx: '+ e.message)
 			}
 		},
 		
@@ -111,26 +111,26 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 			}
 		},
 		
-		async sendMsgRemoveInterchainQueryRequest({ value, fee, memo }: sendMsgRemoveInterchainQueryRequestParams): Promise<DeliverTxResponse> {
+		async sendMsgSubmitQueryResult({ value, fee, memo }: sendMsgSubmitQueryResultParams): Promise<DeliverTxResponse> {
 			if (!signer) {
-					throw new Error('TxClient:sendMsgRemoveInterchainQueryRequest: Unable to sign Tx. Signer is not present.')
+					throw new Error('TxClient:sendMsgSubmitQueryResult: Unable to sign Tx. Signer is not present.')
 			}
 			try {			
 				const { address } = (await signer.getAccounts())[0]; 
 				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
-				let msg = this.msgRemoveInterchainQueryRequest({ value: MsgRemoveInterchainQueryRequest.fromPartial(value) })
+				let msg = this.msgSubmitQueryResult({ value: MsgSubmitQueryResult.fromPartial(value) })
 				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
 			} catch (e: any) {
-				throw new Error('TxClient:sendMsgRemoveInterchainQueryRequest: Could not broadcast Tx: '+ e.message)
+				throw new Error('TxClient:sendMsgSubmitQueryResult: Could not broadcast Tx: '+ e.message)
 			}
 		},
 		
 		
-		msgSubmitQueryResult({ value }: msgSubmitQueryResultParams): EncodeObject {
+		msgRemoveInterchainQueryRequest({ value }: msgRemoveInterchainQueryRequestParams): EncodeObject {
 			try {
-				return { typeUrl: "/neutron.interchainqueries.MsgSubmitQueryResult", value: MsgSubmitQueryResult.fromPartial( value ) }  
+				return { typeUrl: "/neutron.interchainqueries.MsgRemoveInterchainQueryRequest", value: MsgRemoveInterchainQueryRequest.fromPartial( value ) }  
 			} catch (e: any) {
-				throw new Error('TxClient:MsgSubmitQueryResult: Could not create message: ' + e.message)
+				throw new Error('TxClient:MsgRemoveInterchainQueryRequest: Could not create message: ' + e.message)
 			}
 		},
 		
@@ -142,11 +142,11 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 			}
 		},
 		
-		msgRemoveInterchainQueryRequest({ value }: msgRemoveInterchainQueryRequestParams): EncodeObject {
+		msgSubmitQueryResult({ value }: msgSubmitQueryResultParams): EncodeObject {
 			try {
-				return { typeUrl: "/neutron.interchainqueries.MsgRemoveInterchainQueryRequest", value: MsgRemoveInterchainQueryRequest.fromPartial( value ) }  
+				return { typeUrl: "/neutron.interchainqueries.MsgSubmitQueryResult", value: MsgSubmitQueryResult.fromPartial( value ) }  
 			} catch (e: any) {
-				throw new Error('TxClient:MsgRemoveInterchainQueryRequest: Could not create message: ' + e.message)
+				throw new Error('TxClient:MsgSubmitQueryResult: Could not create message: ' + e.message)
 			}
 		},
 		

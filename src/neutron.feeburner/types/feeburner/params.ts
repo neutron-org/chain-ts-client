@@ -5,14 +5,19 @@ export const protobufPackage = "neutron.feeburner";
 
 /** Params defines the parameters for the module. */
 export interface Params {
-  /** Defines Neutron denom, which will be burned during fee processing, any other denom will be sent to Treasury */
+  /**
+   * Defines Neutron denom, which will be burned during fee processing, any
+   * other denom will be sent to Treasury
+   */
   neutronDenom: string;
-  /** Defines Treasury address */
+  /** Deprecated in v0.4.4. Is not used anymore */
+  reserveAddress: string;
+  /** Defines treasury address */
   treasuryAddress: string;
 }
 
 function createBaseParams(): Params {
-  return { neutronDenom: "", treasuryAddress: "" };
+  return { neutronDenom: "", reserveAddress: "", treasuryAddress: "" };
 }
 
 export const Params = {
@@ -20,8 +25,11 @@ export const Params = {
     if (message.neutronDenom !== "") {
       writer.uint32(10).string(message.neutronDenom);
     }
+    if (message.reserveAddress !== "") {
+      writer.uint32(18).string(message.reserveAddress);
+    }
     if (message.treasuryAddress !== "") {
-      writer.uint32(18).string(message.treasuryAddress);
+      writer.uint32(26).string(message.treasuryAddress);
     }
     return writer;
   },
@@ -37,6 +45,9 @@ export const Params = {
           message.neutronDenom = reader.string();
           break;
         case 2:
+          message.reserveAddress = reader.string();
+          break;
+        case 3:
           message.treasuryAddress = reader.string();
           break;
         default:
@@ -50,6 +61,7 @@ export const Params = {
   fromJSON(object: any): Params {
     return {
       neutronDenom: isSet(object.neutronDenom) ? String(object.neutronDenom) : "",
+      reserveAddress: isSet(object.reserveAddress) ? String(object.reserveAddress) : "",
       treasuryAddress: isSet(object.treasuryAddress) ? String(object.treasuryAddress) : "",
     };
   },
@@ -57,6 +69,7 @@ export const Params = {
   toJSON(message: Params): unknown {
     const obj: any = {};
     message.neutronDenom !== undefined && (obj.neutronDenom = message.neutronDenom);
+    message.reserveAddress !== undefined && (obj.reserveAddress = message.reserveAddress);
     message.treasuryAddress !== undefined && (obj.treasuryAddress = message.treasuryAddress);
     return obj;
   },
@@ -64,6 +77,7 @@ export const Params = {
   fromPartial<I extends Exact<DeepPartial<Params>, I>>(object: I): Params {
     const message = createBaseParams();
     message.neutronDenom = object.neutronDenom ?? "";
+    message.reserveAddress = object.reserveAddress ?? "";
     message.treasuryAddress = object.treasuryAddress ?? "";
     return message;
   },

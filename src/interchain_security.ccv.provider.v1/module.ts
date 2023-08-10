@@ -7,6 +7,7 @@ import { msgTypes } from './registry';
 import { IgniteClient } from "../client"
 import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
+import { MsgRegisterConsumerRewardDenom } from "./types/interchain_security/ccv/provider/v1/tx";
 import { MsgAssignConsumerKey } from "./types/interchain_security/ccv/provider/v1/tx";
 
 import { ConsumerState as typeConsumerState} from "./types"
@@ -16,6 +17,7 @@ import { ValidatorByConsumerAddr as typeValidatorByConsumerAddr} from "./types"
 import { ConsumerAddrsToPrune as typeConsumerAddrsToPrune} from "./types"
 import { ConsumerAdditionProposal as typeConsumerAdditionProposal} from "./types"
 import { ConsumerRemovalProposal as typeConsumerRemovalProposal} from "./types"
+import { EquivocationProposal as typeEquivocationProposal} from "./types"
 import { GlobalSlashEntry as typeGlobalSlashEntry} from "./types"
 import { Params as typeParams} from "./types"
 import { HandshakeMetadata as typeHandshakeMetadata} from "./types"
@@ -33,7 +35,13 @@ import { Chain as typeChain} from "./types"
 import { ThrottledSlashPacket as typeThrottledSlashPacket} from "./types"
 import { ThrottledPacketDataWrapper as typeThrottledPacketDataWrapper} from "./types"
 
-export { MsgAssignConsumerKey };
+export { MsgRegisterConsumerRewardDenom, MsgAssignConsumerKey };
+
+type sendMsgRegisterConsumerRewardDenomParams = {
+  value: MsgRegisterConsumerRewardDenom,
+  fee?: StdFee,
+  memo?: string
+};
 
 type sendMsgAssignConsumerKeyParams = {
   value: MsgAssignConsumerKey,
@@ -41,6 +49,10 @@ type sendMsgAssignConsumerKeyParams = {
   memo?: string
 };
 
+
+type msgRegisterConsumerRewardDenomParams = {
+  value: MsgRegisterConsumerRewardDenom,
+};
 
 type msgAssignConsumerKeyParams = {
   value: MsgAssignConsumerKey,
@@ -76,6 +88,20 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 
   return {
 		
+		async sendMsgRegisterConsumerRewardDenom({ value, fee, memo }: sendMsgRegisterConsumerRewardDenomParams): Promise<DeliverTxResponse> {
+			if (!signer) {
+					throw new Error('TxClient:sendMsgRegisterConsumerRewardDenom: Unable to sign Tx. Signer is not present.')
+			}
+			try {			
+				const { address } = (await signer.getAccounts())[0]; 
+				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
+				let msg = this.msgRegisterConsumerRewardDenom({ value: MsgRegisterConsumerRewardDenom.fromPartial(value) })
+				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
+			} catch (e: any) {
+				throw new Error('TxClient:sendMsgRegisterConsumerRewardDenom: Could not broadcast Tx: '+ e.message)
+			}
+		},
+		
 		async sendMsgAssignConsumerKey({ value, fee, memo }: sendMsgAssignConsumerKeyParams): Promise<DeliverTxResponse> {
 			if (!signer) {
 					throw new Error('TxClient:sendMsgAssignConsumerKey: Unable to sign Tx. Signer is not present.')
@@ -90,6 +116,14 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 			}
 		},
 		
+		
+		msgRegisterConsumerRewardDenom({ value }: msgRegisterConsumerRewardDenomParams): EncodeObject {
+			try {
+				return { typeUrl: "/interchain_security.ccv.provider.v1.MsgRegisterConsumerRewardDenom", value: MsgRegisterConsumerRewardDenom.fromPartial( value ) }  
+			} catch (e: any) {
+				throw new Error('TxClient:MsgRegisterConsumerRewardDenom: Could not create message: ' + e.message)
+			}
+		},
 		
 		msgAssignConsumerKey({ value }: msgAssignConsumerKeyParams): EncodeObject {
 			try {
@@ -128,6 +162,7 @@ class SDKModule {
 						ConsumerAddrsToPrune: getStructure(typeConsumerAddrsToPrune.fromPartial({})),
 						ConsumerAdditionProposal: getStructure(typeConsumerAdditionProposal.fromPartial({})),
 						ConsumerRemovalProposal: getStructure(typeConsumerRemovalProposal.fromPartial({})),
+						EquivocationProposal: getStructure(typeEquivocationProposal.fromPartial({})),
 						GlobalSlashEntry: getStructure(typeGlobalSlashEntry.fromPartial({})),
 						Params: getStructure(typeParams.fromPartial({})),
 						HandshakeMetadata: getStructure(typeHandshakeMetadata.fromPartial({})),

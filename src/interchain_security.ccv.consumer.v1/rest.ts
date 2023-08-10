@@ -9,6 +9,76 @@
  * ---------------------------------------------------------------
  */
 
+export interface Ccvconsumerv1Params {
+  /**
+   * TODO: Remove enabled flag and find a better way to setup e2e tests
+   * See: https://github.com/cosmos/interchain-security/issues/339
+   */
+  enabled?: boolean;
+
+  /**
+   * /////////////////////
+   * Distribution Params
+   * Number of blocks between ibc-token-transfers from the consumer chain to
+   * the provider chain. Note that at this transmission event a fraction of
+   * the accumulated tokens are divided and sent consumer redistribution
+   * address.
+   * @format int64
+   */
+  blocks_per_distribution_transmission?: string;
+
+  /**
+   * Channel, and provider-chain receiving address to send distribution token
+   * transfers over. These parameters is auto-set during the consumer <->
+   * provider handshake procedure.
+   */
+  distribution_transmission_channel?: string;
+  provider_fee_pool_addr_str?: string;
+
+  /** Sent CCV related IBC packets will timeout after this duration */
+  ccv_timeout_period?: string;
+
+  /** Sent transfer related IBC packets will timeout after this duration */
+  transfer_timeout_period?: string;
+
+  /**
+   * The fraction of tokens allocated to the consumer redistribution address
+   * during distribution events. The fraction is a string representing a
+   * decimal number. For example "0.75" would represent 75%.
+   */
+  consumer_redistribution_fraction?: string;
+
+  /**
+   * The number of historical info entries to persist in store.
+   * This param is a part of the cosmos sdk staking module. In the case of
+   * a ccv enabled consumer chain, the ccv module acts as the staking module.
+   * @format int64
+   */
+  historical_entries?: string;
+
+  /**
+   * Unbonding period for the consumer,
+   * which should be smaller than that of the provider in general.
+   */
+  unbonding_period?: string;
+
+  /**
+   * The threshold for the percentage of validators at the bottom of the set who
+   * can opt out of running the consumer chain without being punished. For example, a
+   * value of 0.05 means that the validators in the bottom 5% of the set can opt out
+   */
+  soft_opt_out_threshold?: string;
+
+  /** Reward denoms. These are the denominations which are allowed to be sent to the provider as rewards. */
+  reward_denoms?: string[];
+
+  /**
+   * Provider-originated reward denoms. These are denoms coming from the provider
+   * which are allowed to be used as rewards. e.g. "uatom"
+   */
+  provider_reward_denoms?: string[];
+}
+
 /**
 * `Any` contains an arbitrary serialized protocol buffer message along with a
 URL that describes the type of the serialized message.
@@ -166,6 +236,14 @@ export interface V1QueryNextFeeDistributionEstimateResponse {
   data?: V1NextFeeDistributionEstimate;
 }
 
+/**
+ * QueryParamsResponse is response type for the Query/Params RPC method.
+ */
+export interface V1QueryParamsResponse {
+  /** params holds all the parameters of this module. */
+  params?: Ccvconsumerv1Params;
+}
+
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, ResponseType } from "axios";
 
 export type QueryParamsType = Record<string | number, any>;
@@ -303,6 +381,22 @@ whose proposal has been accepted
   queryQueryNextFeeDistribution = (params: RequestParams = {}) =>
     this.request<V1QueryNextFeeDistributionEstimateResponse, RpcStatus>({
       path: `/interchain_security/ccv/consumer/next-fee-distribution`,
+      method: "GET",
+      format: "json",
+      ...params,
+    });
+
+  /**
+   * No description
+   *
+   * @tags Query
+   * @name QueryQueryParams
+   * @summary QueryParams queries the ccv/consumer module parameters.
+   * @request GET:/interchain_security/ccv/consumer/params
+   */
+  queryQueryParams = (params: RequestParams = {}) =>
+    this.request<V1QueryParamsResponse, RpcStatus>({
+      path: `/interchain_security/ccv/consumer/params`,
       method: "GET",
       format: "json",
       ...params,

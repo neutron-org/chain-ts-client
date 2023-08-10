@@ -13,10 +13,16 @@
  * Params defines the parameters for the module.
  */
 export interface FeeburnerParams {
-  /** Defines Neutron denom, which will be burned during fee processing, any other denom will be sent to Treasury */
+  /**
+   * Defines Neutron denom, which will be burned during fee processing, any
+   * other denom will be sent to Treasury
+   */
   neutron_denom?: string;
 
-  /** Defines Treasury address */
+  /** Deprecated in v0.4.4. Is not used anymore */
+  reserve_address?: string;
+
+  /** Defines treasury address */
   treasury_address?: string;
 }
 

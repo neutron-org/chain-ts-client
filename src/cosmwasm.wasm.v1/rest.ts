@@ -347,6 +347,8 @@ export interface V1MsgStoreCodeResponse {
 
 export type V1MsgUpdateAdminResponse = object;
 
+export type V1MsgUpdateInstantiateConfigResponse = object;
+
 /**
  * Params defines the set of wasm parameters.
  */

@@ -5,6 +5,7 @@ import { ValidatorByConsumerAddr } from "./types/interchain_security/ccv/provide
 import { ConsumerAddrsToPrune } from "./types/interchain_security/ccv/provider/v1/genesis"
 import { ConsumerAdditionProposal } from "./types/interchain_security/ccv/provider/v1/provider"
 import { ConsumerRemovalProposal } from "./types/interchain_security/ccv/provider/v1/provider"
+import { EquivocationProposal } from "./types/interchain_security/ccv/provider/v1/provider"
 import { GlobalSlashEntry } from "./types/interchain_security/ccv/provider/v1/provider"
 import { Params } from "./types/interchain_security/ccv/provider/v1/provider"
 import { HandshakeMetadata } from "./types/interchain_security/ccv/provider/v1/provider"
@@ -31,6 +32,7 @@ export {
     ConsumerAddrsToPrune,
     ConsumerAdditionProposal,
     ConsumerRemovalProposal,
+    EquivocationProposal,
     GlobalSlashEntry,
     Params,
     HandshakeMetadata,
